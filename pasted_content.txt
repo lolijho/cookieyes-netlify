@@ -1,0 +1,156 @@
+**Progetto SaaS: Clone di CookieYes con Google Consent Mode v2**
+
+---
+
+## 🤬 Obiettivo
+
+Creare un SaaS completo che permetta a chiunque di generare e gestire un banner cookie conforme a GDPR, CCPA e Digital Markets Act, con supporto completo a **Google Consent Mode v2**, registro dei consensi, e script embed personalizzato.
+
+---
+
+## 🔧 Stack Tecnologico
+
+* **Frontend**: Next.js (App Router), React (sviluppo con V0.dev o Cursor)
+* **Backend**: API Next.js (route handlers)
+* **Database**: Turso (SQLite distribuito edge)
+* **Autenticazione**: Lucia Auth o Auth.js
+* **Hosting**: Vercel
+* **Versionamento**: GitHub
+
+---
+
+## 📆 Feature principali (MVP)
+
+### 1. Autenticazione
+
+* Registrazione/login con email/password
+* Recupero password (facoltativo)
+* Dashboard multi-progetto
+
+### 2. Gestione Progetti
+
+* Crea nuovo progetto con:
+
+  * Nome
+  * Dominio
+  * Lingua
+  * Stile banner (layout, colori, posizionamento)
+  * Testi personalizzati e traduzioni
+
+### 3. Generazione Codice Embed
+
+* Script JS pubblico unico per ogni progetto
+* Script mostra il banner cookie
+* Integra **Google Consent Mode v2**
+* Salva consenso su:
+
+  * `localStorage`
+  * API backend `/api/consent`
+
+### 4. Google Consent Mode v2
+
+* Inizializzazione:
+
+```js
+  gtag('consent', 'default', {
+    ad_storage: 'denied',
+    analytics_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied'
+  });
+```
+
+* Aggiornamento su consenso:
+
+```js
+  gtag('consent', 'update', {
+    ad_storage: 'granted',
+    analytics_storage: 'granted',
+    ad_user_data: 'granted',
+    ad_personalization: 'granted'
+  });
+```
+
+### 5. Registro dei consensi
+
+* Salvataggio su Turso:
+
+  * ID progetto
+  * IP (hashato)
+  * Data/ora
+  * Stato dei parametri
+* Esportazione CSV da dashboard
+
+### 6. Script Blocker
+
+* I tag script devono avere `type="text/plain"` e `data-cookie-category="ads"` etc.
+* Lo script JS del banner deve attivare/disattivare questi tag in base al consenso
+
+### 7. Interfaccia utente (frontend)
+
+* Creazione e modifica progetto
+* Anteprima banner
+* Generazione codice
+* Log consensi (tabella)
+
+---
+
+## 📋 Struttura progetto suggerita (Next.js App Router)
+
+```
+/app
+  /login
+  /register
+  /dashboard
+    /[projectId]
+/lib
+  db.ts
+  auth.ts
+/components
+  ConsentEditor.tsx
+  BannerPreview.tsx
+/scripts
+  generate-embed.ts
+/api
+  /consent
+/public
+  /embed/[projectId].js
+```
+
+---
+
+## 🚀 Toolchain consigliata
+
+| Tool       | Funzione             |
+| ---------- | -------------------- |
+| **Cursor** | Coding assistito     |
+| **V0.dev** | UI e prototipazione  |
+| **Turso**  | Database edge        |
+| **Lucia**  | Autenticazione       |
+| **Stripe** | Pagamenti (fase 2)   |
+| **Vercel** | Hosting del progetto |
+| **GitHub** | Versionamento        |
+
+---
+
+## 💡 Espansioni future (fase 2)
+
+* Scansione automatica cookie
+* Integrazione Tag Manager
+* IAB TCF 2.2
+* White labeling
+* Analytics dei consensi
+* Piani a pagamento con Stripe
+
+---
+
+## 🚫 Privacy e sicurezza
+
+* Nessun dato personale salvato
+* IP hashato (SHA-256 + salt)
+* Nessun cookie settato da default
+* Consent Mode attivato solo dopo l'interazione
+
+---
+
+**Pronto per iniziare su Cursor o V0.dev. Posso aiutarti a generare la prima struttura React/Next.js.**
