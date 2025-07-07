@@ -51,8 +51,11 @@ export async function GET(request: NextRequest) {
 
 // POST - Crea un nuovo progetto
 export async function POST(request: NextRequest) {
+  console.log('API /api/projects POST: Inizio richiesta');
   try {
     const body = await request.json();
+    console.log('API /api/projects POST: Body ricevuto:', body);
+    
     const { 
       userId, 
       name, 
@@ -73,7 +76,9 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validazione
+    console.log('API /api/projects POST: Inizio validazione');
     if (!userId || !name || !domain) {
+      console.error('API /api/projects POST: Validazione fallita - dati mancanti');
       return NextResponse.json(
         { message: 'userId, name e domain sono richiesti' },
         { status: 400 }
@@ -84,15 +89,20 @@ export async function POST(request: NextRequest) {
     try {
       new URL(`https://${domain}`);
     } catch {
+      console.error('API /api/projects POST: Validazione fallita - formato dominio non valido');
       return NextResponse.json(
         { message: 'Formato dominio non valido' },
         { status: 400 }
       );
     }
+    console.log('API /api/projects POST: Validazione completata');
 
     const projectId = uuidv4();
     const now = Math.floor(Date.now() / 1000);
 
+    // Inizio transazione database
+    console.log(`API /api/projects POST: Inizio inserimento progetto con ID: ${projectId}`);
+    
     // Crea il progetto
     await client.execute({
       sql: `
@@ -116,6 +126,7 @@ export async function POST(request: NextRequest) {
         now, now
       ]
     });
+    console.log('API /api/projects POST: Progetto inserito con successo');
 
     // Crea le categorie di cookie predefinite
     const categories = [
@@ -153,7 +164,7 @@ export async function POST(request: NextRequest) {
       }
     ];
 
-    // Inserisci le categorie
+    console.log('API /api/projects POST: Inizio inserimento categorie cookie');
     for (const category of categories) {
       await client.execute({
         sql: `
@@ -163,27 +174,36 @@ export async function POST(request: NextRequest) {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `,
         args: [
-          category.id, projectId, category.name, category.displayName, 
+          uuidv4(), projectId, category.name, category.displayName, 
           category.description, category.isRequired, category.isEnabled, now
         ]
       });
     }
+    console.log('API /api/projects POST: Categorie inserite con successo');
 
     // Recupera il progetto creato
+    console.log('API /api/projects POST: Recupero progetto creato');
     const createdProject = await client.execute({
       sql: 'SELECT * FROM projects WHERE id = ?',
       args: [projectId]
     });
 
+    console.log('API /api/projects POST: Richiesta completata con successo');
     return NextResponse.json({
       message: 'Progetto creato con successo',
       project: createdProject.rows[0]
     }, { status: 201 });
 
-  } catch (error) {
-    console.error('Errore nella creazione progetto:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto';
+    console.error('💥 ERRORE CRITICO in /api/projects POST:', errorMessage);
+    
+    // Aggiungo il dettaglio dell'errore nella risposta per il debug
     return NextResponse.json(
-      { message: 'Errore interno del server' },
+      { 
+        message: 'Errore interno del server durante la creazione del progetto.',
+        error: errorMessage
+      },
       { status: 500 }
     );
   }
