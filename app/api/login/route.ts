@@ -34,8 +34,16 @@ export async function POST(request: NextRequest) {
 
     const user = result.rows[0];
 
+    // Verifica che la password esista
+    if (!user.password_hash || typeof user.password_hash !== 'string') {
+      return NextResponse.json(
+        { message: 'Credenziali non valide' },
+        { status: 401 }
+      );
+    }
+
     // Verifica la password
-    const isValidPassword = await bcrypt.compare(password, user.password as string);
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
 
     if (!isValidPassword) {
       return NextResponse.json(
