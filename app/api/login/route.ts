@@ -57,8 +57,11 @@ export async function POST(request: NextRequest) {
     const user = result.rows[0];
     console.log('👤 Utente trovato:', user.email);
 
+    // CORREZIONE PRINCIPALE: Cast esplicito a string
+    const passwordHash = user.password_hash as string;
+    
     // Verifica che la password esista
-    if (!user.password_hash || typeof user.password_hash !== 'string') {
+    if (!passwordHash || typeof passwordHash !== 'string') {
       console.log('❌ Password hash non valido');
       return NextResponse.json(
         { message: 'Credenziali non valide' },
@@ -67,8 +70,8 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('🔒 Verifica password...');
-    // Verifica la password
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    // Verifica la password con cast esplicito
+    const isValidPassword = await bcrypt.compare(password, passwordHash);
     console.log('✅ Password valida:', isValidPassword);
 
     if (!isValidPassword) {
