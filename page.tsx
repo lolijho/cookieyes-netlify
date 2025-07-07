@@ -38,7 +38,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-purple-100 p-4">
-      <div className="w-full max-w-md bg-white/90 rounded-xl shadow-2xl p-8 relative">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-8 relative">
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,18 +48,23 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Cookie Facile</h1>
           <p className="text-gray-600 mt-2">Gestione cookie intelligente e conforme</p>
         </div>
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-center text-gray-800 mb-2">Benvenuto di nuovo</h2>
+          <p className="text-center text-gray-600 text-sm">Accedi al tuo dashboard per gestire i cookie</p>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {error && <div className="bg-red-100 text-red-700 px-4 py-2 rounded text-center">{error}</div>}
-          {success && <div className="bg-green-100 text-green-700 px-4 py-2 rounded text-center">Accesso effettuato! Reindirizzamento...</div>}
+          {error && <div className="bg-red-100 text-red-700 px-4 py-2 rounded text-center text-sm">{error}</div>}
+          {success && <div className="bg-green-100 text-green-700 px-4 py-2 rounded text-center text-sm">Accesso effettuato! Reindirizzamento...</div>}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
               id="email"
               type="email"
               autoComplete="email"
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               value={email}
               onChange={e => setEmail(e.target.value)}
+              placeholder="nome@esempio.com"
               required
             />
           </div>
@@ -69,7 +74,7 @@ export default function LoginPage() {
               id="password"
               type="password"
               autoComplete="current-password"
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
@@ -77,7 +82,7 @@ export default function LoginPage() {
           </div>
           <button
             type="submit"
-            className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-60"
+            className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
             disabled={loading}
           >
             {loading ? 'Accesso in corso...' : 'Accedi'}
@@ -85,12 +90,23 @@ export default function LoginPage() {
         </form>
         <div className="mt-6 text-center text-sm text-gray-600">
           Non hai un account?{' '}
-          <a href="/register" className="text-blue-600 hover:underline">Registrati ora</a>
+          <a href="/register" className="text-blue-600 hover:text-blue-800 hover:underline">Registrati ora</a>
         </div>
-        <div className="mt-8 grid grid-cols-1 gap-3 text-sm text-gray-600">
-          <div className="flex items-center"><span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>GDPR Compliant</div>
-          <div className="flex items-center"><span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>Setup Rapido</div>
-          <div className="flex items-center"><span className="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>Cookie Smart</div>
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="grid grid-cols-1 gap-3 text-sm text-gray-600">
+            <div className="flex items-center">
+              <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+              GDPR Compliant
+            </div>
+            <div className="flex items-center">
+              <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+              Setup Rapido
+            </div>
+            <div className="flex items-center">
+              <span className="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
+              Cookie Smart
+            </div>
+          </div>
         </div>
       </div>
     </div>
