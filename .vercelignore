@@ -1,5 +1,5 @@
-# Escludi la vecchia directory api/ per evitare conflitti
-api/
+# Escludi solo la directory api/ nella root (non app/api/)
+/api/
 # Escludi file di sviluppo
 .DS_Store
 *.log
