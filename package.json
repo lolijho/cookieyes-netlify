@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "rm -rf .next && next build",
+    "build:clean": "rm -rf .next node_modules/.cache && npm run build",
     "start": "next start",
     "lint": "next lint",
     "db:migrate": "node migrate-db.js",

@@ -1,0 +1,12 @@
+# Escludi la vecchia directory api/ per evitare conflitti
+api/
+# Escludi file di sviluppo
+.DS_Store
+*.log
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# Escludi cache
+.next/cache/
+node_modules/ 

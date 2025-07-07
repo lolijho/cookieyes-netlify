@@ -4,6 +4,7 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "outputDirectory": ".next",
+  "cleanUrls": true,
   "functions": {
     "app/api/**/*.ts": {
       "maxDuration": 30
@@ -12,6 +13,7 @@
   "env": {
     "TURSO_DATABASE_URL": "@turso_database_url",
     "TURSO_AUTH_TOKEN": "@turso_auth_token"
-  }
+  },
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./"
 }
 
