@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -23,15 +22,16 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
       });
-
-      if (result?.error) {
-        setError('Credenziali non valide');
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || 'Credenziali non valide');
       } else {
+        // Qui puoi salvare un token o settare uno stato di login custom
         router.push('/dashboard');
       }
     } catch (error) {
