@@ -98,88 +98,52 @@ export async function POST(request: NextRequest) {
     console.log('API /api/projects POST: Validazione completata');
 
     const projectId = uuidv4();
-    const now = Math.floor(Date.now() / 1000);
 
-    // Inizio transazione database
+    // Prepara la configurazione del banner come JSON
+    const bannerConfig = {
+      layout: bannerPosition,
+      colors: {
+        background: bannerBgColor,
+        text: bannerTextColor,
+        button_accept: bannerAcceptBgColor,
+        button_reject: bannerRejectBgColor,
+        button_settings: bannerAcceptBgColor
+      },
+      texts: {
+        title: bannerTitle,
+        description: bannerDescription,
+        accept_all: bannerAcceptText,
+        reject_all: bannerRejectText,
+        settings: bannerCustomizeText,
+        save_preferences: 'Salva Preferenze'
+      },
+      categories: {
+        necessary: true,
+        analytics: true,
+        marketing: true,
+        preferences: true
+      }
+    };
+
     console.log(`API /api/projects POST: Inizio inserimento progetto con ID: ${projectId}`);
     
-    // Crea il progetto
+    // Crea il progetto utilizzando lo schema corretto
     await client.execute({
       sql: `
         INSERT INTO projects (
-          id, user_id, name, domain, language,
-          banner_position, banner_title, banner_description,
-          banner_accept_text, banner_reject_text, banner_customize_text,
-          banner_bg_color, banner_text_color,
-          banner_accept_bg_color, banner_accept_text_color,
-          banner_reject_bg_color, banner_reject_text_color,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          id, user_id, name, domain, language, banner_config, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
       `,
       args: [
-        projectId, userId, name, domain, language,
-        bannerPosition, bannerTitle, bannerDescription,
-        bannerAcceptText, bannerRejectText, bannerCustomizeText,
-        bannerBgColor, bannerTextColor,
-        bannerAcceptBgColor, bannerAcceptTextColor,
-        bannerRejectBgColor, bannerRejectTextColor,
-        now, now
+        projectId, 
+        userId, 
+        name, 
+        domain, 
+        language,
+        JSON.stringify(bannerConfig)
       ]
     });
     console.log('API /api/projects POST: Progetto inserito con successo');
-
-    // Crea le categorie di cookie predefinite
-    const categories = [
-      {
-        id: uuidv4(),
-        name: 'necessary',
-        displayName: 'Cookie Necessari',
-        description: 'Cookie essenziali per il funzionamento del sito',
-        isRequired: true,
-        isEnabled: true
-      },
-      {
-        id: uuidv4(),
-        name: 'analytics',
-        displayName: 'Cookie di Analisi',
-        description: 'Cookie per raccogliere statistiche anonime sui visitatori',
-        isRequired: false,
-        isEnabled: true
-      },
-      {
-        id: uuidv4(),
-        name: 'marketing',
-        displayName: 'Cookie di Marketing',
-        description: 'Cookie per personalizzare pubblicità e contenuti',
-        isRequired: false,
-        isEnabled: true
-      },
-      {
-        id: uuidv4(),
-        name: 'preferences',
-        displayName: 'Cookie di Preferenze',
-        description: 'Cookie per ricordare le tue preferenze',
-        isRequired: false,
-        isEnabled: true
-      }
-    ];
-
-    console.log('API /api/projects POST: Inizio inserimento categorie cookie');
-    for (const category of categories) {
-      await client.execute({
-        sql: `
-          INSERT INTO cookie_categories (
-            id, project_id, name, display_name, description, 
-            is_required, is_enabled, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `,
-        args: [
-          uuidv4(), projectId, category.name, category.displayName, 
-          category.description, category.isRequired, category.isEnabled, now
-        ]
-      });
-    }
-    console.log('API /api/projects POST: Categorie inserite con successo');
 
     // Recupera il progetto creato
     console.log('API /api/projects POST: Recupero progetto creato');
