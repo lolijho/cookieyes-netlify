@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@libsql/client';
 
 // Inizializza client Turso
@@ -7,8 +7,19 @@ const client = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN!,
 });
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const secret = searchParams.get('secret');
+    
+    // Semplice protezione con un parametro segreto
+    if (secret !== 'init-db-secret-2024') {
+      return NextResponse.json(
+        { message: 'Accesso negato' },
+        { status: 401 }
+      );
+    }
+
     console.log('Inizializzazione database remoto...');
     
     // Tabella utenti
