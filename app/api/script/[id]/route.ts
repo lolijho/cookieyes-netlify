@@ -404,12 +404,14 @@ function generateCookieBannerScript(project: any): string {
         </div>
         <div id="cookie-settings-panel" class="cookie-settings-panel" style="display: none;">
           <div class="cookie-settings-header">
-            <h4>🍪 Personalizza le tue preferenze sui cookie</h4>
+            <h4>Personalizza le preferenze di consenso</h4>
             <button id="cookie-close-settings" class="cookie-close-btn">✕</button>
           </div>
-          <p class="cookie-settings-description">
-            Puoi scegliere quali tipi di cookie accettare. Le tue scelte non influenzeranno la tua visita.
-          </p>
+          <div class="cookie-settings-description">
+            <p>Utilizziamo i cookie per aiutarti a navigare in maniera efficiente e a svolgere determinate funzioni. Troverai informazioni dettagliate su tutti i cookie sotto ogni categoria di consensi sottostanti. I cookie categorizzati come "Necessari" vengono memorizzati sul tuo browser in quanto essenziali per consentire le funzionalità di base del sito.</p>
+            <p>Utilizziamo inoltre cookie di terze parti che ci aiutano nell'analizzare come utilizzi questo sito web, memorizzare le tue preferenze e offrirti contenuti e pubblicità rilevanti per te. Questi cookie saranno memorizzati sul tuo browser solo a seguito del tuo consenso.</p>
+            <p>Puoi decidere di attivare o disattivare alcuni o tutti questi cookie, ma la disattivazione di alcuni di questi potrebbe avere un impatto sulla tua esperienza sul browser.</p>
+          </div>
           <div class="cookie-categories">
             <div class="cookie-category cookie-category-necessary">
               <div class="cookie-category-header">
@@ -742,6 +744,15 @@ function generateCookieBannerScript(project: any): string {
       color: #666;
       font-size: 14px;
       line-height: 1.5;
+    }
+    
+    #cookie-banner .cookie-settings-description p {
+      margin: 0 0 15px 0;
+      line-height: 1.6;
+    }
+    
+    #cookie-banner .cookie-settings-description p:last-child {
+      margin-bottom: 0;
     }
     
     #cookie-banner .cookie-categories {
