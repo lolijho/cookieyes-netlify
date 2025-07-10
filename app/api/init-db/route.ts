@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@libsql/client';
-
-// Inizializza client Turso
-const client = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
-});
+import { db } from '../../../db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +17,7 @@ export async function POST(request: NextRequest) {
     console.log('Inizializzazione database remoto...');
     
     // Tabella utenti
-    await client.execute(`
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
@@ -35,7 +29,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Tabella users creata');
 
     // Tabella progetti
-    await client.execute(`
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS projects (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -51,7 +45,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Tabella projects creata');
 
     // Tabella consensi
-    await client.execute(`
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS consents (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         project_id TEXT NOT NULL,
@@ -72,37 +66,26 @@ export async function POST(request: NextRequest) {
     console.log('✅ Tabella consents creata');
 
     // Indici per performance
-    await client.execute(`CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects (user_id)`);
-    await client.execute(`CREATE INDEX IF NOT EXISTS idx_consents_project_id ON consents (project_id)`);
-    await client.execute(`CREATE INDEX IF NOT EXISTS idx_consents_created_at ON consents (created_at)`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects (user_id)`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_consents_project_id ON consents (project_id)`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_consents_created_at ON consents (created_at)`);
+    
     console.log('✅ Indici creati');
 
-    // Inserisco un utente di test
-    await client.execute(`
-      INSERT OR IGNORE INTO users (id, email, password_hash) 
-      VALUES ('test-user-1', 'test@example.com', 'hash123')
-    `);
-    console.log('✅ Utente di test inserito');
-
-    // Verifico le tabelle create
-    const tables = await client.execute("SELECT name FROM sqlite_master WHERE type='table'");
-    console.log('\nTabelle create:');
-    tables.rows.forEach(row => console.log('-', row.name));
+    // Verifica finale
+    const result = await db.execute("SELECT name FROM sqlite_master WHERE type='table'");
+    console.log('✅ Database inizializzato con successo');
+    console.log('📋 Tabelle create:', result.rows.map(r => r.name));
 
     return NextResponse.json({
       message: 'Database inizializzato con successo',
-      tables: tables.rows.map(row => row.name)
+      tables: result.rows.map(r => r.name)
     });
 
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto';
-    console.error('❌ Errore durante l\'inizializzazione:', errorMessage);
-    
+  } catch (error) {
+    console.error('❌ Errore durante l\'inizializzazione:', error);
     return NextResponse.json(
-      { 
-        message: 'Errore durante l\'inizializzazione del database',
-        error: errorMessage
-      },
+      { message: 'Errore durante l\'inizializzazione del database' },
       { status: 500 }
     );
   }

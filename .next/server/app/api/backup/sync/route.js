@@ -1,0 +1,18 @@
+(()=>{var e={};e.id=530,e.ids=[530],e.modules={767:(e,t,r)=>{"use strict";r.a(e,async(e,a)=>{try{r.r(t),r.d(t,{POST:()=>i});var s=r(2190),n=r(4562),o=e([n]);async function i(e){try{let{projects:t,timestamp:r}=await e.json();if(!t||!Array.isArray(t))return s.NextResponse.json({error:"Progetti non validi"},{status:400});console.log(`🔄 Sincronizzazione ${t.length} progetti su Turso`),await n.db.execute({sql:`
+        CREATE TABLE IF NOT EXISTS project_backups (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          domain TEXT NOT NULL,
+          language TEXT NOT NULL,
+          banner_config TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          backup_timestamp TEXT NOT NULL
+        )
+      `,args:[]});let a=0;for(let e of t)try{await n.db.execute({sql:`
+            INSERT OR REPLACE INTO project_backups (
+              id, user_id, name, domain, language, banner_config, 
+              created_at, updated_at, backup_timestamp
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `,args:[e.id,e.user_id,e.name,e.domain,e.language,JSON.stringify(e.banner_config),e.created_at,e.updated_at,r]}),a++}catch(t){console.error(`Errore sync progetto ${e.id}:`,t)}return console.log(`✅ Sincronizzati ${a}/${t.length} progetti`),s.NextResponse.json({message:"Backup completato",syncedProjects:a,totalProjects:t.length,timestamp:r})}catch(e){return console.error("Errore sincronizzazione Turso:",e),s.NextResponse.json({error:"Errore interno del server"},{status:500})}}n=(o.then?(await o)():o)[0],a()}catch(e){a(e)}})},846:e=>{"use strict";e.exports=require("next/dist/compiled/next-server/app-page.runtime.prod.js")},2803:(e,t,r)=>{"use strict";r.a(e,async(e,a)=>{try{r.r(t),r.d(t,{patchFetch:()=>u,routeModule:()=>p,serverHooks:()=>l,workAsyncStorage:()=>d,workUnitAsyncStorage:()=>T});var s=r(6559),n=r(8088),o=r(7719),i=r(767),c=e([i]);i=(c.then?(await c)():c)[0];let p=new s.AppRouteRouteModule({definition:{kind:n.RouteKind.APP_ROUTE,page:"/api/backup/sync/route",pathname:"/api/backup/sync",filename:"route",bundlePath:"app/api/backup/sync/route"},resolvedPagePath:"/Users/cuweb/Desktop/cookiefacile/cookie/app/api/backup/sync/route.ts",nextConfigOutput:"",userland:i}),{workAsyncStorage:d,workUnitAsyncStorage:T,serverHooks:l}=p;function u(){return(0,o.patchFetch)({workAsyncStorage:d,workUnitAsyncStorage:T})}a()}catch(e){a(e)}})},3033:e=>{"use strict";e.exports=require("next/dist/server/app-render/work-unit-async-storage.external.js")},3295:e=>{"use strict";e.exports=require("next/dist/server/app-render/after-task-async-storage.external.js")},4562:(e,t,r)=>{"use strict";r.a(e,async(e,a)=>{try{r.d(t,{db:()=>o});var s=r(8855),n=e([s]);s=(n.then?(await n)():n)[0];let o=(0,s.createClient)({url:process.env.STORAGE_TURSO_DATABASE_URL||process.env.TURSO_DATABASE_URL||"file:./local.db",authToken:process.env.STORAGE_TURSO_AUTH_TOKEN||process.env.TURSO_AUTH_TOKEN});a()}catch(e){a(e)}})},4870:e=>{"use strict";e.exports=require("next/dist/compiled/next-server/app-route.runtime.prod.js")},6487:()=>{},8335:()=>{},8855:e=>{"use strict";e.exports=import("@libsql/client")},9294:e=>{"use strict";e.exports=require("next/dist/server/app-render/work-async-storage.external.js")}};var t=require("../../../../webpack-runtime.js");t.C(e);var r=e=>t(t.s=e),a=t.X(0,[447,580],()=>r(2803));module.exports=a})();

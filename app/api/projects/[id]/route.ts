@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@libsql/client';
-
-// Inizializza client Turso
-const client = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
-});
+import { db } from '../../../../db';
 
 // GET - Recupera un progetto specifico
 export async function GET(
@@ -25,7 +19,7 @@ export async function GET(
     }
 
     // Recupera il progetto con le sue categorie
-    const projectResult = await client.execute({
+    const projectResult = await db.execute({
       sql: `
         SELECT p.*, 
                COUNT(c.id) as total_consents,
@@ -46,13 +40,13 @@ export async function GET(
     }
 
     // Recupera le categorie del progetto
-    const categoriesResult = await client.execute({
+    const categoriesResult = await db.execute({
       sql: 'SELECT * FROM cookie_categories WHERE project_id = ? ORDER BY created_at ASC',
       args: [projectId]
     });
 
     // Recupera gli script di tracciamento
-    const scriptsResult = await client.execute({
+    const scriptsResult = await db.execute({
       sql: 'SELECT * FROM tracking_scripts WHERE project_id = ? ORDER BY created_at ASC',
       args: [projectId]
     });
@@ -107,7 +101,7 @@ export async function PUT(
     }
 
     // Verifica che il progetto appartenga all'utente
-    const checkResult = await client.execute({
+    const checkResult = await db.execute({
       sql: 'SELECT id FROM projects WHERE id = ? AND user_id = ?',
       args: [projectId, userId]
     });
@@ -197,13 +191,13 @@ export async function PUT(
     updateValues.push(now);
     updateValues.push(projectId);
 
-    await client.execute({
+    await db.execute({
       sql: `UPDATE projects SET ${updateFields.join(', ')} WHERE id = ?`,
       args: updateValues
     });
 
     // Recupera il progetto aggiornato
-    const updatedProject = await client.execute({
+    const updatedProject = await db.execute({
       sql: 'SELECT * FROM projects WHERE id = ?',
       args: [projectId]
     });
@@ -240,7 +234,7 @@ export async function DELETE(
     }
 
     // Verifica che il progetto appartenga all'utente
-    const checkResult = await client.execute({
+    const checkResult = await db.execute({
       sql: 'SELECT id FROM projects WHERE id = ? AND user_id = ?',
       args: [projectId, userId]
     });
@@ -252,10 +246,10 @@ export async function DELETE(
       );
     }
 
-    // Elimina il progetto (CASCADE eliminerà automaticamente le relazioni)
-    await client.execute({
-      sql: 'DELETE FROM projects WHERE id = ?',
-      args: [projectId]
+    // Elimina il progetto (le dipendenze verranno eliminate automaticamente per CASCADE)
+    await db.execute({
+      sql: 'DELETE FROM projects WHERE id = ? AND user_id = ?',
+      args: [projectId, userId]
     });
 
     return NextResponse.json({

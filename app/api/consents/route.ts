@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@libsql/client';
+import { db } from '../../../db';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
-
-// Inizializza client Turso
-const client = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
-});
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verifica che il progetto esista
-    const projectResult = await client.execute({
+    const projectResult = await db.execute({
       sql: 'SELECT id FROM projects WHERE id = ?',
       args: [projectId]
     });
@@ -55,7 +49,7 @@ export async function POST(request: NextRequest) {
     const consentTimestamp = timestamp ? Math.floor(new Date(timestamp).getTime() / 1000) : now;
 
     // Verifica se esiste già un consenso per questa sessione nelle ultime 24 ore
-    const existingConsent = await client.execute({
+    const existingConsent = await db.execute({
       sql: `
         SELECT id FROM consents 
         WHERE session_id = ? AND project_id = ? 
@@ -68,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     if (existingConsent.rows.length > 0) {
       // Aggiorna il consenso esistente
-      await client.execute({
+      await db.execute({
         sql: `
           UPDATE consents SET
             necessary = ?,
@@ -96,7 +90,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Crea nuovo consenso
-      await client.execute({
+      await db.execute({
         sql: `
           INSERT INTO consents (
             id, project_id, session_id, ip_hash, user_agent, domain,
@@ -144,7 +138,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verifica che il progetto appartenga all'utente
-    const projectResult = await client.execute({
+    const projectResult = await db.execute({
       sql: 'SELECT id FROM projects WHERE id = ? AND user_id = ?',
       args: [projectId, userId]
     });
@@ -157,7 +151,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Statistiche consensi
-    const statsResult = await client.execute({
+    const statsResult = await db.execute({
       sql: `
         SELECT 
           COUNT(*) as total_consents,
@@ -174,7 +168,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Consensi per giorno negli ultimi 30 giorni
-    const dailyStats = await client.execute({
+    const dailyStats = await db.execute({
       sql: `
         SELECT 
           DATE(created_at) as date,

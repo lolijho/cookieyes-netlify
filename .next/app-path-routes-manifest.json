@@ -1,0 +1,15 @@
+{
+  "/api/init-db/route": "/api/init-db",
+  "/api/projects/route": "/api/projects",
+  "/api/consents/route": "/api/consents",
+  "/api/projects/[id]/route": "/api/projects/[id]",
+  "/api/script/[id]/route": "/api/script/[id]",
+  "/api/backup/restore/route": "/api/backup/restore",
+  "/_not-found/page": "/_not-found",
+  "/api/login/route": "/api/login",
+  "/api/backup/sync/route": "/api/backup/sync",
+  "/api/test/route": "/api/test",
+  "/dashboard/page": "/dashboard",
+  "/page": "/",
+  "/editor/[id]/page": "/editor/[id]"
+}
