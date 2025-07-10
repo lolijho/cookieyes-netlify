@@ -197,6 +197,40 @@
         </div>
 
         <div class="test-section">
+            <h2>🎛️ Test Modal Preferenze (NUOVO!)</h2>
+            <div class="info-box" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <h3 style="margin: 0 0 10px 0;">✨ Modal Preferenze Rinnovato!</h3>
+                <p style="margin: 0;">Il banner ora include un modal moderno per personalizzare i consensi cookie con design professionale e toggle switches!</p>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h4>🎯 Come testare il nuovo modal:</h4>
+                <ol>
+                    <li>Clicca <strong>"Carica Cookie Banner"</strong> sopra per attivare il banner</li>
+                    <li>Nel banner, clicca il pulsante <strong>"Personalizza"</strong></li>
+                    <li>Esplora il nuovo modal con:</li>
+                    <ul>
+                        <li>🎨 Header con gradiente colorato</li>
+                        <li>🔘 Toggle switches moderni per ogni categoria</li>
+                        <li>📝 Descrizioni dettagliate di ogni tipo di cookie</li>
+                        <li>🎯 Pulsanti multipli: "Salva", "Accetta Tutti", "Rifiuta"</li>
+                        <li>✕ Pulsante di chiusura in alto a destra</li>
+                        <li>📱 Design completamente responsive</li>
+                    </ul>
+                </ol>
+            </div>
+            
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0;">
+                <button onclick="testPreferencesModal()" style="background: #4f46e5; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    🎨 Mostra Modal Preferenze
+                </button>
+                <button onclick="clearCookieConsent(); setTimeout(loadCookieScript, 100);" style="background: #10b981; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    🔄 Reset + Ricarica Banner
+                </button>
+            </div>
+        </div>
+
+        <div class="test-section">
             <h2>📊 Cookie Consent Status</h2>
             <div id="consent-status" class="console-output">
                 Nessun consenso trovato. Carica il cookie banner per iniziare.
@@ -435,6 +469,31 @@
             }
         });
 
+        // Funzione per testare il modal delle preferenze
+        function testPreferencesModal() {
+            // Prima assicurati che il banner sia presente
+            var banner = document.getElementById('cookie-banner');
+            if (!banner) {
+                console.log('⚠️ Banner non trovato. Caricando...');
+                loadCookieScript();
+                setTimeout(function() {
+                    activatePreferencesModal();
+                }, 2000);
+            } else {
+                activatePreferencesModal();
+            }
+        }
+
+        function activatePreferencesModal() {
+            var settingsBtn = document.querySelector('#cookie-settings');
+            if (settingsBtn) {
+                console.log('🎨 Aprendo modal preferenze...');
+                settingsBtn.click();
+            } else {
+                console.log('❌ Pulsante Personalizza non trovato');
+            }
+        }
+
         // Esponi funzioni globali per debug
         window.CookieTest = {
             loadScript: loadCookieScript,
@@ -442,7 +501,8 @@
             showStatus: showConsentStatus,
             scanCookies: scanCurrentCookies,
             addTestCookies: addTestCookies,
-            clearAllCookies: clearAllCookies
+            clearAllCookies: clearAllCookies,
+            testModal: testPreferencesModal
         };
     </script>
 </body>
