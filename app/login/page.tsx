@@ -132,7 +132,7 @@ function LoginForm() {
             </div>
             <div className="mt-2 space-y-1 text-xs text-gray-500">
               <div>👑 Admin: lorecucchini@gmail.com / admin123</div>
-              <div>👤 Client: prova@email.com / password123</div>
+              <div>👤 Demo: demo@cliente.com / demo123</div>
             </div>
           </div>
         </CardContent>

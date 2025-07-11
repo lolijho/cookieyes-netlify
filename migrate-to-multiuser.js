@@ -261,6 +261,60 @@ async function migrateToMultiUser() {
       console.log('✅ Amministratore già esistente');
     }
 
+    // 10. Crea utente demo per test
+    console.log('👤 Creazione utente demo per test...');
+    
+    const demoEmail = 'demo@cliente.com';
+    const demoPassword = 'demo123';
+    
+    const existingDemo = await db.execute({
+      sql: 'SELECT id FROM users WHERE email = ?',
+      args: [demoEmail]
+    });
+
+    if (existingDemo.rows.length === 0) {
+      const demoPasswordHash = await bcrypt.hash(demoPassword, 10);
+      const demoId = 'demo_' + Date.now();
+      
+      await db.execute({
+        sql: `INSERT INTO users (
+          id, email, password_hash, first_name, last_name, company, role, plan_id, 
+          is_active, email_verified, created_at, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          demoId,
+          demoEmail,
+          demoPasswordHash,
+          'Mario',
+          'Rossi',
+          'Demo S.r.l.',
+          'client',
+          'professional',
+          1,
+          1,
+          new Date().toISOString(),
+          'system'
+        ]
+      });
+
+      console.log('✅ Utente demo creato:');
+      console.log('   📧 Email:', demoEmail);
+      console.log('   🔑 Password:', demoPassword);
+
+      // Log dell'azione
+      await db.execute({
+        sql: `INSERT INTO audit_logs (action, resource, details, created_at) VALUES (?, ?, ?, ?)`,
+        args: [
+          'create_demo_user',
+          'user',
+          JSON.stringify({ email: demoEmail, reason: 'Demo account setup' }),
+          new Date().toISOString()
+        ]
+      });
+    } else {
+      console.log('✅ Utente demo già esistente');
+    }
+
     console.log('🎉 Migrazione completata con successo!');
     console.log('');
     console.log('📋 Riassunto:');
@@ -270,9 +324,10 @@ async function migrateToMultiUser() {
     console.log('   ✅ Amministratore configurato');
     console.log('');
     console.log('🔗 Prossimi passi:');
-    console.log('   1. Accedi con lorecucchini@gmail.com / admin123');
-    console.log('   2. Cambia immediatamente la password');
-    console.log('   3. Crea i tuoi primi clienti dalla dashboard admin');
+    console.log('   1. Accedi come admin: lorecucchini@gmail.com / admin123');
+    console.log('   2. Cambia immediatamente la password admin');
+    console.log('   3. Testa con account demo: demo@cliente.com / demo123');
+    console.log('   4. Crea i tuoi primi clienti dalla dashboard admin');
 
   } catch (error) {
     console.error('❌ Errore durante la migrazione:', error);
