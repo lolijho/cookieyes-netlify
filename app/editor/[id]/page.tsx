@@ -53,7 +53,22 @@ export default function BannerEditor() {
     const foundProject = LocalProjectsManager.getById(projectId);
     if (foundProject) {
       setProject(foundProject);
-      setConfig(foundProject.banner_config);
+      
+      // Assicurati che la configurazione includa l'icona persistente
+      let bannerConfig = foundProject.banner_config;
+      if (!bannerConfig.floatingIcon) {
+        bannerConfig.floatingIcon = {
+          enabled: true,
+          position: 'bottom-right',
+          text: '🍪',
+          backgroundColor: '#4f46e5',
+          textColor: '#ffffff'
+        };
+        // Salva la configurazione aggiornata
+        LocalProjectsManager.update(projectId, { banner_config: bannerConfig });
+      }
+      
+      setConfig(bannerConfig);
     } else {
       router.push('/dashboard');
     }
@@ -113,6 +128,7 @@ export default function BannerEditor() {
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
           fontSize: '14px',
+          lineHeight: '1.5',
           border: `3px solid ${config.layout === 'top' ? '#e5e7eb' : '#e5e7eb'}`,
           borderTop: config.layout === 'bottom' ? '3px solid #e5e7eb' : 'none',
           borderBottom: config.layout === 'top' ? '3px solid #e5e7eb' : 'none',
@@ -200,6 +216,57 @@ export default function BannerEditor() {
           </div>
         </div>
       </div>
+      
+      {/* Anteprima Icona Persistente */}
+      {config.floatingIcon?.enabled && (
+        <div className="floating-icon-preview" style={{
+          position: 'absolute',
+          [config.floatingIcon?.position?.includes('bottom') ? 'bottom' : 'top']: '20px',
+          [config.floatingIcon?.position?.includes('right') ? 'right' : 'left']: '20px',
+          width: '60px',
+          height: '60px',
+          backgroundColor: config.floatingIcon?.backgroundColor || '#4f46e5',
+          color: config.floatingIcon?.textColor || '#ffffff',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '20px',
+          fontWeight: 'bold',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+          border: '2px solid rgba(255,255,255,0.2)',
+          textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <span>{config.floatingIcon?.text || '🍪'}</span>
+            <div className="floating-icon-tooltip" style={{
+              position: 'absolute',
+              bottom: '70px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              backgroundColor: 'rgba(0,0,0,0.8)',
+              color: 'white',
+              padding: '6px 12px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              whiteSpace: 'nowrap',
+              opacity: '0',
+              visibility: 'hidden',
+              transition: 'all 0.3s ease',
+              pointerEvents: 'none'
+            }}>
+              Gestisci Cookie
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -489,6 +556,109 @@ export default function BannerEditor() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Icona Persistente */}
+            <Card className="shadow-lg border-0 bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  🎯 Icona Persistente
+                </CardTitle>
+                <CardDescription>
+                  Configura l'icona che appare dopo che l'utente ha dato il consenso
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <span className="font-medium text-gray-700">Abilita Icona</span>
+                    <p className="text-xs text-gray-500">Mostra l'icona dopo il consenso</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={config.floatingIcon?.enabled || false}
+                      onChange={(e) => updateConfig('floatingIcon.enabled', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+                
+                {config.floatingIcon?.enabled && (
+                  <>
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-700">Posizione</Label>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        {[
+                          { value: 'bottom-right', label: 'Basso Destra', icon: '↘️' },
+                          { value: 'bottom-left', label: 'Basso Sinistra', icon: '↙️' },
+                          { value: 'top-right', label: 'Alto Destra', icon: '↗️' },
+                          { value: 'top-left', label: 'Alto Sinistra', icon: '↖️' }
+                        ].map((position) => (
+                          <button
+                            key={position.value}
+                            onClick={() => updateConfig('floatingIcon.position', position.value)}
+                            className={`p-3 rounded-lg border-2 transition-all text-sm ${
+                              config.floatingIcon?.position === position.value
+                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="text-lg mb-1">{position.icon}</div>
+                            <div className="font-medium">{position.label}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-700">Testo/Emoji Icona</Label>
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          value={config.floatingIcon?.text || '🍪'}
+                          onChange={(e) => updateConfig('floatingIcon.text', e.target.value)}
+                          placeholder="🍪"
+                          className="flex-1"
+                          maxLength={4}
+                        />
+                        <div className="flex gap-1">
+                          {['🍪', '⚙️', '📊', '🔒'].map((emoji) => (
+                            <button
+                              key={emoji}
+                              onClick={() => updateConfig('floatingIcon.text', emoji)}
+                              className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-lg"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <ColorPickerComponent
+                        label="Colore Sfondo"
+                        value={config.floatingIcon?.backgroundColor || '#4f46e5'}
+                        onChange={(value) => updateConfig('floatingIcon.backgroundColor', value)}
+                      />
+                      <ColorPickerComponent
+                        label="Colore Testo"
+                        value={config.floatingIcon?.textColor || '#ffffff'}
+                        onChange={(value) => updateConfig('floatingIcon.textColor', value)}
+                      />
+                    </div>
+                    
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <h4 className="font-medium text-blue-900 mb-2">💡 Come Funziona</h4>
+                      <p className="text-sm text-blue-800 leading-relaxed">
+                        L'icona appare automaticamente dopo che l'utente ha accettato o rifiutato i cookie. 
+                        Cliccando sull'icona si riaprono le impostazioni dei cookie per modificare le preferenze.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Anteprima */}
@@ -551,6 +721,30 @@ export default function BannerEditor() {
           padding: 16px;
           border-radius: 8px;
           border: 1px solid rgba(229, 231, 235, 0.8);
+        }
+        
+        .floating-icon-preview:hover {
+          transform: translateY(-2px) scale(1.05);
+          box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+        
+        .floating-icon-preview:hover .floating-icon-tooltip {
+          opacity: 1;
+          visibility: visible;
+        }
+        
+        .floating-icon-preview:active {
+          transform: translateY(0) scale(0.95);
+        }
+        
+        .banner-preview-container {
+          position: relative;
+        }
+        
+        .banner-preview-container.mobile-view .floating-icon-preview {
+          width: 50px;
+          height: 50px;
+          font-size: 18px;
         }
       `}</style>
     </div>

@@ -231,6 +231,341 @@ export function ProjectsManager({ userId }: ProjectsManagerProps) {
     alert('Codice script copiato negli appunti!');
   };
 
+  const scanCookiesForProject = (project: ProjectLocal) => {
+    // Apri una nuova finestra per lo scan dei cookie
+    const scanWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+    
+    if (!scanWindow) {
+      alert('Blocco popup attivo. Abilita i popup per questa pagina per usare lo scan dei cookie.');
+      return;
+    }
+    
+    scanWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="it">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Cookie Scanner - ${project.name}</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+          }
+          .container {
+            max-width: 100%;
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e5e7eb;
+          }
+          .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+            margin: 0 0 8px 0;
+          }
+          .subtitle {
+            color: #6b7280;
+            margin: 0;
+          }
+          .scan-btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin: 16px 0;
+          }
+          .scan-btn:hover {
+            transform: translateY(-2px);
+          }
+          .results {
+            margin-top: 20px;
+          }
+          .cookie-category {
+            margin-bottom: 16px;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+          }
+          .category-necessary { border-left-color: #10b981; background: #ecfdf5; }
+          .category-analytics { border-left-color: #3b82f6; background: #eff6ff; }
+          .category-marketing { border-left-color: #f59e0b; background: #fffbeb; }
+          .category-preferences { border-left-color: #8b5cf6; background: #f3e8ff; }
+          .cookie-item {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            font-family: monospace;
+            font-size: 12px;
+          }
+          .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+          }
+          .stat-card {
+            text-align: center;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+          }
+          .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e40af;
+          }
+          .stat-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+          }
+          .instructions {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+          }
+          .instructions h3 {
+            margin: 0 0 8px 0;
+            color: #92400e;
+          }
+          .instructions p {
+            margin: 0;
+            color: #78350f;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 class="title">🔍 Cookie Scanner</h1>
+            <p class="subtitle">Progetto: ${project.name} • Dominio: ${project.domain}</p>
+          </div>
+          
+          <div class="instructions">
+            <h3>📋 Istruzioni per lo Scan</h3>
+            <p>1. Apri il sito <strong>${project.domain}</strong> in una nuova scheda<br>
+               2. Torna qui e clicca "Scansiona Cookie"<br>
+               3. I risultati appariranno automaticamente sotto</p>
+          </div>
+          
+          <div style="text-align: center;">
+            <button class="scan-btn" onclick="scanSiteCookies()">
+              🔍 Scansiona Cookie di ${project.domain}
+            </button>
+            <button class="scan-btn" onclick="scanCurrentCookies()" style="margin-left: 10px; background: #059669;">
+              📊 Scansiona Cookie Correnti
+            </button>
+          </div>
+          
+          <div id="results" class="results" style="display: none;">
+            <div class="stats" id="stats"></div>
+            <div id="categories"></div>
+          </div>
+          
+          <script>
+            function categorizeByName(name) {
+              if (!name) return 'necessary';
+              
+              const lowerName = name.toLowerCase();
+              
+              // Database di categorizzazione
+              const cookieDatabase = {
+                necessary: ['session', 'csrf', 'auth', 'security', 'login', 'token', 'xsrf', 'phpsessid', 'jsessionid', 'asp.net_sessionid', 'cookieyes', 'cookie_consent', 'gdpr', 'necessary', 'essential'],
+                analytics: ['ga', 'google', 'analytics', 'gtm', 'gtag', '_utm', '_gid', '_gat', 'hotjar', 'mixpanel', 'segment', 'amplitude', 'heap', 'fullstory', 'mouseflow', 'piwik', 'matomo', 'yandex', 'metrika', 'baidu'],
+                marketing: ['fb', 'facebook', 'ads', 'advertising', 'marketing', 'track', 'pixel', 'adnxs', 'adsystem', 'doubleclick', 'googlesyndication', 'amazon', 'twitter', 'linkedin', 'pinterest', 'instagram', 'snapchat', 'tiktok'],
+                preferences: ['pref', 'preference', 'settings', 'config', 'lang', 'language', 'locale', 'theme', 'dark', 'light', 'currency', 'timezone', 'region', 'country']
+              };
+              
+              for (const [category, keywords] of Object.entries(cookieDatabase)) {
+                if (keywords.some(keyword => lowerName.includes(keyword))) {
+                  return category;
+                }
+              }
+              
+              return 'necessary';
+            }
+            
+            function getCategoryEmoji(category) {
+              switch (category) {
+                case 'necessary': return '🔒';
+                case 'analytics': return '📊';
+                case 'marketing': return '📢';
+                case 'preferences': return '⚙️';
+                default: return '❓';
+              }
+            }
+            
+            function scanCurrentCookies() {
+              const results = {
+                necessary: [],
+                analytics: [],
+                marketing: [],
+                preferences: []
+              };
+              
+              // Scansiona cookie del browser
+              const cookies = document.cookie.split(';').filter(cookie => cookie.trim());
+              cookies.forEach(cookie => {
+                const [name, value] = cookie.trim().split('=');
+                if (name) {
+                  const category = categorizeByName(name);
+                  results[category].push({ name: name.trim(), value: value || '', type: 'cookie' });
+                }
+              });
+              
+              // Scansiona localStorage
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && !key.startsWith('cookie_consent_')) {
+                  const category = categorizeByName(key);
+                  results[category].push({ name: key, value: 'localStorage', type: 'storage' });
+                }
+              }
+              
+              // Scansiona sessionStorage
+              for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                if (key) {
+                  const category = categorizeByName(key);
+                  results[category].push({ name: key, value: 'sessionStorage', type: 'storage' });
+                }
+              }
+              
+              displayResults(results);
+            }
+            
+            function scanSiteCookies() {
+              alert('Aprendo ${project.domain} in una nuova finestra. Naviga sul sito e poi torna qui per vedere i cookie.');
+              window.open('https://${project.domain}', '_blank');
+              
+              // Dopo un po' scansiona di nuovo i cookie
+              setTimeout(() => {
+                scanCurrentCookies();
+              }, 5000);
+            }
+            
+            function displayResults(results) {
+              const resultsDiv = document.getElementById('results');
+              const statsDiv = document.getElementById('stats');
+              const categoriesDiv = document.getElementById('categories');
+              
+              resultsDiv.style.display = 'block';
+              
+              // Calcola statistiche
+              const totalItems = Object.values(results).reduce((acc, arr) => acc + arr.length, 0);
+              const cookieCount = Object.values(results).reduce((acc, arr) => acc + arr.filter(item => item.type === 'cookie').length, 0);
+              const storageCount = totalItems - cookieCount;
+              
+              statsDiv.innerHTML = \`
+                <div class="stat-card">
+                  <div class="stat-number">\${totalItems}</div>
+                  <div class="stat-label">Totale Elementi</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-number">\${cookieCount}</div>
+                  <div class="stat-label">Cookie</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-number">\${storageCount}</div>
+                  <div class="stat-label">Storage</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-number">\${Object.keys(results).filter(cat => results[cat].length > 0).length}</div>
+                  <div class="stat-label">Categorie Attive</div>
+                </div>
+              \`;
+              
+              // Mostra le categorie
+              categoriesDiv.innerHTML = '';
+              
+              Object.entries(results).forEach(([category, items]) => {
+                if (items.length === 0) return;
+                
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = \`cookie-category category-\${category}\`;
+                
+                const emoji = getCategoryEmoji(category);
+                const categoryNames = {
+                  necessary: 'Cookie Necessari',
+                  analytics: 'Cookie Analytics', 
+                  marketing: 'Cookie Marketing',
+                  preferences: 'Cookie Preferenze'
+                };
+                
+                categoryDiv.innerHTML = \`
+                  <h3 style="margin: 0 0 12px 0; color: #374151;">
+                    \${emoji} \${categoryNames[category]} (\${items.length})
+                  </h3>
+                  \${items.map(item => \`
+                    <div class="cookie-item">
+                      <strong>\${item.name}</strong> 
+                      <span style="color: #6b7280;">[\${item.type}]</span>
+                      \${item.value && item.value !== 'localStorage' && item.value !== 'sessionStorage' ? 
+                        \`<br><span style="color: #9ca3af; font-size: 11px;">Valore: \${item.value.substring(0, 50)}\${item.value.length > 50 ? '...' : ''}</span>\` : 
+                        ''
+                      }
+                    </div>
+                  \`).join('')}
+                \`;
+                
+                categoriesDiv.appendChild(categoryDiv);
+              });
+            }
+            
+            // Scansiona automaticamente all'apertura
+            setTimeout(scanCurrentCookies, 1000);
+          </script>
+        </div>
+      </body>
+      </html>
+    `);
+    
+    scanWindow.document.close();
+  };
+
+  const updateIconConfig = (projectId: string, key: string, value: any) => {
+    const updatedProjects = projects.map(project => {
+      if (project.id === projectId) {
+        return {
+          ...project,
+          banner_config: {
+            ...project.banner_config,
+            floatingIcon: {
+              ...project.banner_config.floatingIcon,
+              [key]: value
+            }
+          }
+        };
+      }
+      return project;
+    });
+    setProjects(updatedProjects);
+    LocalProjectsManager.update(projectId, { banner_config: updatedProjects.find(p => p.id === projectId)?.banner_config });
+    TursoBackup.forceBackup();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -445,6 +780,14 @@ export function ProjectsManager({ userId }: ProjectsManagerProps) {
                       🎨 Personalizza Banner
                     </Button>
                     <Button
+                      onClick={() => scanCookiesForProject(project)}
+                      size="sm"
+                      variant="outline"
+                      className="text-orange-600 border-orange-600 hover:bg-orange-600 hover:text-white"
+                    >
+                      🔍 Scan Cookie
+                    </Button>
+                    <Button
                       onClick={() => {
                         window.open(`/analytics/${project.id}`, '_blank');
                       }}
@@ -481,6 +824,56 @@ export function ProjectsManager({ userId }: ProjectsManagerProps) {
                     <div className="text-sm text-gray-600">Aggiornato</div>
                     <div className="font-semibold">
                       {new Date(project.updated_at).toLocaleDateString('it-IT')}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Configurazione Icona Persistente */}
+                <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                  <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                    🎯 Icona Persistente
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="text-xs text-blue-700 block mb-1">Abilitata</label>
+                      <input
+                        type="checkbox"
+                        checked={project.banner_config.floatingIcon?.enabled || false}
+                        onChange={(e) => updateIconConfig(project.id, 'enabled', e.target.checked)}
+                        className="w-4 h-4"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-blue-700 block mb-1">Colore Sfondo</label>
+                      <input
+                        type="color"
+                        value={project.banner_config.floatingIcon?.backgroundColor || '#4f46e5'}
+                        onChange={(e) => updateIconConfig(project.id, 'backgroundColor', e.target.value)}
+                        className="w-8 h-8 rounded border"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-blue-700 block mb-1">Icona</label>
+                      <input
+                        type="text"
+                        value={project.banner_config.floatingIcon?.text || '🍪'}
+                        onChange={(e) => updateIconConfig(project.id, 'text', e.target.value)}
+                        className="w-12 text-center p-1 border rounded"
+                        maxLength={4}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-blue-700 block mb-1">Posizione</label>
+                      <select
+                        value={project.banner_config.floatingIcon?.position || 'bottom-right'}
+                        onChange={(e) => updateIconConfig(project.id, 'position', e.target.value)}
+                        className="text-xs p-1 border rounded w-full"
+                      >
+                        <option value="bottom-right">Basso Dx</option>
+                        <option value="bottom-left">Basso Sx</option>
+                        <option value="top-right">Alto Dx</option>
+                        <option value="top-left">Alto Sx</option>
+                      </select>
                     </div>
                   </div>
                 </div>

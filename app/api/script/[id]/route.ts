@@ -111,24 +111,52 @@ function generateCookieBannerScript(project: any): string {
   
   // === COOKIE SCANNER ===
   const CookieScanner = {
+    // Cache dei cookie scansionati
+    lastScanResults: null,
+    scanInterval: null,
+    
     // Scansiona tutti i cookie presenti
     scanCookies: function() {
-      const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+      const cookies = {};
+      const rawCookies = document.cookie.split(';');
+      
+      console.log('🔍 Scansionando cookie...', rawCookies.length, 'cookie trovati');
+      
+      rawCookies.forEach(cookie => {
         const [name, value] = cookie.trim().split('=');
-        if (name) {
-          acc[name] = {
-            name: name,
+        if (name && name.trim()) {
+          const cleanName = name.trim();
+          const category = this.categorizeByName(cleanName);
+          
+          cookies[cleanName] = {
+            name: cleanName,
             value: value || '',
-            category: this.categorizeByName(name)
+            category: category,
+            size: cookie.length,
+            domain: window.location.hostname,
+            path: '/',
+            timestamp: Date.now()
           };
         }
-        return acc;
-      }, {});
+      });
       
       // Scansiona anche localStorage e sessionStorage
       const storage = this.scanStorage();
       
-      return { cookies, storage };
+      // Scansiona script attivi
+      const scripts = this.scanScripts();
+      
+      const results = { 
+        cookies, 
+        storage, 
+        scripts,
+        summary: this.generateSummary(cookies, storage, scripts)
+      };
+      
+      this.lastScanResults = results;
+      console.log('✅ Scan completato:', results.summary);
+      
+      return results;
     },
     
     // Categorizza i cookie per nome con database più avanzato
@@ -225,6 +253,150 @@ function generateCookieBannerScript(project: any): string {
       }
       
       return storage;
+    },
+    
+    // Scansiona script attivi
+    scanScripts: function() {
+      const scripts = {
+        total: 0,
+        blocked: 0,
+        active: 0,
+        byCategory: {
+          necessary: [],
+          analytics: [],
+          marketing: [],
+          preferences: []
+        }
+      };
+      
+      const allScripts = document.querySelectorAll('script');
+      
+      allScripts.forEach(script => {
+        scripts.total++;
+        
+        let category = 'necessary';
+        let isBlocked = false;
+        
+        // Verifica se è bloccato
+        if (script.dataset.blocked === 'true') {
+          isBlocked = true;
+          scripts.blocked++;
+          category = script.dataset.category || 'necessary';
+        } else {
+          scripts.active++;
+          
+          // Categorizza script attivi
+          if (script.dataset.cookieCategory) {
+            category = script.dataset.cookieCategory;
+          } else if (script.src) {
+            category = ScriptBlocker.categorizeScript(script.src);
+          }
+        }
+        
+        scripts.byCategory[category].push({
+          src: script.src || 'inline',
+          type: script.type,
+          blocked: isBlocked,
+          category: category,
+          size: script.outerHTML.length
+        });
+      });
+      
+      return scripts;
+    },
+    
+    // Genera sommario dei risultati
+    generateSummary: function(cookies, storage, scripts) {
+      const cookiesByCategory = {
+        necessary: 0,
+        analytics: 0,
+        marketing: 0,
+        preferences: 0
+      };
+      
+      Object.values(cookies).forEach(cookie => {
+        cookiesByCategory[cookie.category]++;
+      });
+      
+      const storageByCategory = {
+        necessary: 0,
+        analytics: 0,
+        marketing: 0,
+        preferences: 0
+      };
+      
+      [...storage.localStorage, ...storage.sessionStorage].forEach(item => {
+        storageByCategory[item.category]++;
+      });
+      
+      return {
+        cookies: {
+          total: Object.keys(cookies).length,
+          byCategory: cookiesByCategory
+        },
+        storage: {
+          total: storage.localStorage.length + storage.sessionStorage.length,
+          localStorage: storage.localStorage.length,
+          sessionStorage: storage.sessionStorage.length,
+          byCategory: storageByCategory
+        },
+        scripts: {
+          total: scripts.total,
+          active: scripts.active,
+          blocked: scripts.blocked,
+          byCategory: {
+            necessary: scripts.byCategory.necessary.length,
+            analytics: scripts.byCategory.analytics.length,
+            marketing: scripts.byCategory.marketing.length,
+            preferences: scripts.byCategory.preferences.length
+          }
+        }
+      };
+    },
+    
+    // Avvia monitoraggio continuo
+    startMonitoring: function() {
+      if (this.scanInterval) {
+        clearInterval(this.scanInterval);
+      }
+      
+      // Scansiona ogni 10 secondi
+      this.scanInterval = setInterval(() => {
+        const newResults = this.scanCookies();
+        
+        // Controlla se ci sono cambiamenti
+        if (this.hasChanges(newResults)) {
+          console.log('🔄 Rilevati cambiamenti nei cookie/storage');
+          
+          // Verifica consensi se necessario
+          const consent = ConsentManager.getConsent();
+          if (consent) {
+            ConsentManager.applyConsents(consent);
+          }
+        }
+      }, 10000);
+      
+      console.log('👀 Monitoraggio cookie avviato');
+    },
+    
+    // Ferma monitoraggio
+    stopMonitoring: function() {
+      if (this.scanInterval) {
+        clearInterval(this.scanInterval);
+        this.scanInterval = null;
+        console.log('⏹️ Monitoraggio cookie fermato');
+      }
+    },
+    
+    // Verifica se ci sono cambiamenti
+    hasChanges: function(newResults) {
+      if (!this.lastScanResults) return true;
+      
+      const oldCookies = Object.keys(this.lastScanResults.cookies);
+      const newCookies = Object.keys(newResults.cookies);
+      
+      return oldCookies.length !== newCookies.length || 
+             !oldCookies.every(name => newCookies.includes(name));
     }
   };
   
@@ -628,6 +800,12 @@ function generateCookieBannerScript(project: any): string {
       banner.querySelector('#cookie-close-settings').addEventListener('click', () => {
         const panel = banner.querySelector('#cookie-settings-panel');
         panel.style.display = 'none';
+        
+        // Rimuove il banner e ricrea l'icona persistente
+        banner.remove();
+        if (PROJECT_CONFIG.floatingIcon.enabled) {
+          FloatingIcon.show();
+        }
       });
       
       // Salva impostazioni personalizzate
@@ -639,6 +817,12 @@ function generateCookieBannerScript(project: any): string {
           preferences: banner.querySelector('#consent-preferences').checked
         };
         ConsentManager.saveConsent(consents);
+        
+        // Rimuove il banner e ricrea l'icona persistente
+        banner.remove();
+        if (PROJECT_CONFIG.floatingIcon.enabled) {
+          FloatingIcon.show();
+        }
       });
       
       // Accetta tutti dal pannello impostazioni
@@ -654,6 +838,12 @@ function generateCookieBannerScript(project: any): string {
           marketing: true,
           preferences: true
         });
+        
+        // Rimuove il banner e ricrea l'icona persistente
+        banner.remove();
+        if (PROJECT_CONFIG.floatingIcon.enabled) {
+          FloatingIcon.show();
+        }
       });
       
       // Rifiuta tutti dal pannello impostazioni
@@ -669,6 +859,12 @@ function generateCookieBannerScript(project: any): string {
           marketing: false,
           preferences: false
         });
+        
+        // Rimuove il banner e ricrea l'icona persistente
+        banner.remove();
+        if (PROJECT_CONFIG.floatingIcon.enabled) {
+          FloatingIcon.show();
+        }
       });
     }
   };
@@ -795,56 +991,157 @@ function generateCookieBannerScript(project: any): string {
       'baidu.com/h.js'
     ],
     
+    // Referenze originali salvate
+    originalCreateElement: null,
+    originalAppendChild: null,
+    originalCookieDescriptor: null,
+    
     // Inizializza il blocco preventivo
     init: function() {
+      console.log('🔒 Inizializzo ScriptBlocker...');
+      
+      // Salva referenze originali
+      this.originalCreateElement = document.createElement;
+      this.originalAppendChild = Element.prototype.appendChild;
+      this.originalCookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+      
+      // Avvia tutti i blocchi
       this.blockScripts();
+      this.blockExistingScripts();
       this.blockForms();
-      this.blockImages();
       this.interceptCookies();
+      
+      console.log('✅ ScriptBlocker inizializzato');
     },
     
-    // Blocca script non consentiti
+    // Blocca script futuri
     blockScripts: function() {
-      const originalCreateElement = document.createElement;
-      const originalAppendChild = Element.prototype.appendChild;
+      const self = this;
       
-      // Intercetta creazione elementi script
+      // Intercetta creazione elementi
       document.createElement = function(tagName) {
-        const element = originalCreateElement.call(this, tagName);
+        const element = self.originalCreateElement.call(this, tagName);
         
-        if (tagName.toLowerCase() === 'script' && element.src) {
-          const consent = ConsentManager.getConsent();
-          if (!consent && ScriptBlocker.isBlocked(element.src)) {
-            console.log('Script bloccato:', element.src);
-            element.type = 'text/plain';
-            element.dataset.blocked = 'true';
-            element.dataset.originalSrc = element.src;
-            element.src = '';
-          }
+        // Gestisce sia script che immagini
+        if (tagName.toLowerCase() === 'script') {
+          self.processScript(element);
+        } else if (tagName.toLowerCase() === 'img') {
+          self.processImage(element);
         }
         
         return element;
       };
       
-      // Intercetta inserimento script nel DOM
+      // Intercetta inserimento nel DOM
       Element.prototype.appendChild = function(child) {
-        if (child.tagName && child.tagName.toLowerCase() === 'script') {
-          const consent = ConsentManager.getConsent();
-          if (!consent && child.src && ScriptBlocker.isBlocked(child.src)) {
-            console.log('Script bloccato durante appendChild:', child.src);
-            child.type = 'text/plain';
-            child.dataset.blocked = 'true';
-            child.dataset.originalSrc = child.src;
-            child.src = '';
+        if (child.tagName) {
+          const tagName = child.tagName.toLowerCase();
+          
+          if (tagName === 'script') {
+            self.processScript(child);
+          } else if (tagName === 'img') {
+            self.processImage(child);
           }
         }
         
-        return originalAppendChild.call(this, child);
+        return self.originalAppendChild.call(this, child);
       };
+      
+      // Intercetta insertBefore
+      const originalInsertBefore = Element.prototype.insertBefore;
+      Element.prototype.insertBefore = function(newChild, referenceChild) {
+        if (newChild.tagName) {
+          const tagName = newChild.tagName.toLowerCase();
+          
+          if (tagName === 'script') {
+            self.processScript(newChild);
+          } else if (tagName === 'img') {
+            self.processImage(newChild);
+          }
+        }
+        
+        return originalInsertBefore.call(this, newChild, referenceChild);
+      };
+    },
+    
+    // Processa script esistenti e futuri
+    processScript: function(script) {
+      const consent = ConsentManager.getConsent();
+      
+      // Gestione script con data-cookie-category
+      if (script.dataset && script.dataset.cookieCategory) {
+        const category = script.dataset.cookieCategory;
+        
+        if (!consent || !consent[category]) {
+          console.log('🚫 Script bloccato per categoria:', category, script.src || script.textContent?.substr(0, 50));
+          
+          // Blocca lo script
+          script.type = 'text/plain';
+          script.dataset.blocked = 'true';
+          script.dataset.originalType = 'text/javascript';
+          script.dataset.category = category;
+          
+          // Salva src originale se presente
+          if (script.src) {
+            script.dataset.originalSrc = script.src;
+            script.src = '';
+          }
+          
+          // Salva contenuto originale se presente
+          if (script.textContent) {
+            script.dataset.originalContent = script.textContent;
+            script.textContent = '';
+          }
+          
+          return;
+        }
+      }
+      
+      // Gestione script per URL (fallback)
+      if (script.src && !consent && this.isBlocked(script.src)) {
+        const category = this.categorizeScript(script.src);
+        console.log('🚫 Script bloccato per URL:', script.src, 'categoria:', category);
+        
+        script.type = 'text/plain';
+        script.dataset.blocked = 'true';
+        script.dataset.originalType = 'text/javascript';
+        script.dataset.originalSrc = script.src;
+        script.dataset.category = category;
+        script.src = '';
+      }
+    },
+    
+    // Processa immagini (pixel tracking)
+    processImage: function(img) {
+      const consent = ConsentManager.getConsent();
+      
+      if (img.src && (!consent || !consent.marketing) && this.isTrackingPixel(img.src)) {
+        console.log('🚫 Pixel di tracking bloccato:', img.src);
+        img.dataset.originalSrc = img.src;
+        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+        img.dataset.blocked = 'true';
+      }
+    },
+    
+    // Blocca script già presenti nel DOM
+    blockExistingScripts: function() {
+      const scripts = document.querySelectorAll('script[data-cookie-category]');
+      console.log('🔍 Script esistenti da processare:', scripts.length);
+      
+      scripts.forEach(script => {
+        this.processScript(script);
+      });
+      
+      // Blocca anche immagini di tracking esistenti
+      const images = document.querySelectorAll('img');
+      images.forEach(img => {
+        this.processImage(img);
+      });
     },
     
     // Blocca form tracking
     blockForms: function() {
+      const self = this;
       const originalSubmit = HTMLFormElement.prototype.submit;
       
       HTMLFormElement.prototype.submit = function() {
@@ -853,62 +1150,40 @@ function generateCookieBannerScript(project: any): string {
           // Rimuove eventuali pixel di tracking nei form
           const trackingElements = this.querySelectorAll('img[src*="facebook.com"], img[src*="google.com"], img[src*="doubleclick.net"]');
           trackingElements.forEach(el => el.remove());
+          console.log('🚫 Pixel di tracking rimossi dal form');
         }
         
         return originalSubmit.call(this);
       };
     },
     
-    // Blocca immagini di tracking
-    blockImages: function() {
-      const originalCreateElement = document.createElement;
-      
-      document.createElement = function(tagName) {
-        const element = originalCreateElement.call(this, tagName);
-        
-        if (tagName.toLowerCase() === 'img' && element.src) {
-          const consent = ConsentManager.getConsent();
-          if (!consent && ScriptBlocker.isTrackingPixel(element.src)) {
-            console.log('Pixel di tracking bloccato:', element.src);
-            element.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-            element.dataset.blocked = 'true';
-          }
-        }
-        
-        return element;
-      };
-    },
-    
     // Intercetta l'impostazione dei cookie
     interceptCookies: function() {
-      const originalCookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+      const self = this;
       
       Object.defineProperty(document, 'cookie', {
         get: function() {
-          return originalCookieDescriptor.get.call(this);
+          return self.originalCookieDescriptor.get.call(this);
         },
         set: function(value) {
           const consent = ConsentManager.getConsent();
+          const cookieName = value.split('=')[0].trim();
+          const category = CookieScanner.categorizeByName(cookieName);
+          
           if (consent) {
-            const cookieName = value.split('=')[0];
-            const category = CookieScanner.categorizeByName(cookieName);
-            
             if (consent[category]) {
-              return originalCookieDescriptor.set.call(this, value);
+              return self.originalCookieDescriptor.set.call(this, value);
             } else {
-              console.log('Cookie bloccato:', cookieName, 'categoria:', category);
+              console.log('🚫 Cookie bloccato:', cookieName, 'categoria:', category);
               return;
             }
           }
           
           // Se non c'è consenso, blocca tutti i cookie tranne quelli necessari
-          const cookieName = value.split('=')[0];
-          const category = CookieScanner.categorizeByName(cookieName);
-          
           if (category === 'necessary') {
-            return originalCookieDescriptor.set.call(this, value);
+            return self.originalCookieDescriptor.set.call(this, value);
           } else {
-            console.log('Cookie bloccato (senza consenso):', cookieName);
+            console.log('🚫 Cookie bloccato (senza consenso):', cookieName, 'categoria:', category);
             return;
           }
         },
@@ -944,22 +1219,74 @@ function generateCookieBannerScript(project: any): string {
     
     // Riattiva script bloccati dopo consenso
     unblockScripts: function(consents) {
+      console.log('🔓 Riattivando script per consensi:', consents);
+      
+      // Riattiva script con data-cookie-category
       const blockedScripts = document.querySelectorAll('script[data-blocked="true"]');
       
       blockedScripts.forEach(script => {
-        const originalSrc = script.dataset.originalSrc;
-        if (originalSrc) {
-          const category = this.categorizeScript(originalSrc);
+        const category = script.dataset.category;
+        
+        if (category && consents[category]) {
+          console.log('✅ Riattivando script categoria:', category);
           
-          if (consents[category]) {
-            console.log('Riattivando script:', originalSrc);
-            script.src = originalSrc;
-            script.type = 'text/javascript';
-            script.removeAttribute('data-blocked');
-            script.removeAttribute('data-original-src');
+          // Ripristina tipo
+          script.type = script.dataset.originalType || 'text/javascript';
+          
+          // Ripristina src se presente
+          if (script.dataset.originalSrc) {
+            script.src = script.dataset.originalSrc;
+          }
+          
+          // Ripristina contenuto se presente
+          if (script.dataset.originalContent) {
+            script.textContent = script.dataset.originalContent;
+          }
+          
+          // Pulisci attributi di blocco
+          script.removeAttribute('data-blocked');
+          script.removeAttribute('data-original-src');
+          script.removeAttribute('data-original-content');
+          script.removeAttribute('data-original-type');
+          script.removeAttribute('data-category');
+          
+          // Se lo script ha src, ricrea l'elemento per eseguirlo
+          if (script.src) {
+            const newScript = document.createElement('script');
+            newScript.src = script.src;
+            newScript.type = 'text/javascript';
+            
+            // Copia attributi
+            Array.from(script.attributes).forEach(attr => {
+              if (!attr.name.startsWith('data-') && attr.name !== 'src' && attr.name !== 'type') {
+                newScript.setAttribute(attr.name, attr.value);
+              }
+            });
+            
+            script.parentNode.replaceChild(newScript, script);
+          } else if (script.textContent) {
+            // Per script inline, ricrea l'elemento
+            const newScript = document.createElement('script');
+            newScript.textContent = script.textContent;
+            newScript.type = 'text/javascript';
+            
+            script.parentNode.replaceChild(newScript, script);
           }
         }
       });
+      
+      // Riattiva pixel di tracking se necessario
+      if (consents.marketing) {
+        const blockedImages = document.querySelectorAll('img[data-blocked="true"]');
+        blockedImages.forEach(img => {
+          if (img.dataset.originalSrc) {
+            console.log('✅ Riattivando pixel di tracking');
+            img.src = img.dataset.originalSrc;
+            img.removeAttribute('data-blocked');
+            img.removeAttribute('data-original-src');
+          }
+        });
+      }
     },
     
     // Categorizza script per URL
@@ -1009,11 +1336,14 @@ function generateCookieBannerScript(project: any): string {
   }
   
   function init() {
+    console.log('🚀 Inizializzando CookieYes per progetto:', PROJECT_ID);
+    
     // Controlla se il consenso è già stato dato
     const existingConsent = ConsentManager.getConsent();
     
     if (existingConsent) {
       // Se il consenso esiste, applica i consensi e mostra l'iconcina
+      console.log('✅ Consenso esistente trovato:', existingConsent);
       ConsentManager.applyConsents(existingConsent);
       
       // Mostra l'iconcina persistente se abilitata
@@ -1022,19 +1352,63 @@ function generateCookieBannerScript(project: any): string {
       }
     } else {
       // Se non c'è consenso, mostra il banner
+      console.log('⚠️ Nessun consenso trovato, mostrando banner');
       BannerUI.show();
     }
     
+    // Avvia monitoraggio automatico
+    CookieScanner.startMonitoring();
+    
+    // Scansiona immediatamente
+    setTimeout(() => {
+      CookieScanner.scanCookies();
+    }, 1000);
+    
     // API globale per gestione manuale
     window.CookieConsent = {
+      // Interfaccia base
       show: BannerUI.show,
       showIcon: FloatingIcon.show,
+      showSettings: BannerUI.showSettingsOnly,
+      hide: () => {
+        const banner = document.getElementById('cookie-banner');
+        if (banner) banner.remove();
+      },
+      
+      // Gestione consensi
       getConsent: ConsentManager.getConsent,
       updateConsent: ConsentManager.saveConsent,
-      scanCookies: CookieScanner.scanCookies
+      hasConsent: ConsentManager.hasConsent,
+      
+      // Scansione e monitoraggio
+      scanCookies: CookieScanner.scanCookies,
+      startMonitoring: CookieScanner.startMonitoring,
+      stopMonitoring: CookieScanner.stopMonitoring,
+      getLastScan: () => CookieScanner.lastScanResults,
+      
+      // Utilità
+      categorizeByName: CookieScanner.categorizeByName,
+      isBlocked: ScriptBlocker.isBlocked,
+      
+      // Informazioni progetto
+      getProjectInfo: () => ({
+        id: PROJECT_ID,
+        config: PROJECT_CONFIG,
+        version: '2.0.0'
+      })
     };
     
-    console.log('CookieYes script caricato per progetto:', PROJECT_ID);
+    // Evento personalizzato per notificare il caricamento
+    window.dispatchEvent(new CustomEvent('cookieSystemReady', {
+      detail: {
+        projectId: PROJECT_ID,
+        hasConsent: !!existingConsent,
+        api: window.CookieConsent
+      }
+    }));
+    
+    console.log('✅ CookieYes inizializzato completamente');
+    console.log('💡 API disponibile tramite window.CookieConsent');
   }
   
   // Aggiunge CSS globale

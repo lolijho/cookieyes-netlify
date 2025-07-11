@@ -3,277 +3,493 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🍪 Test Cookie Banner - CookieYes Clone</title>
+    <title>�� Test Cookie Banner System 2.0 - Versione Migliorata</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 40px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
             min-height: 100vh;
+            padding: 20px;
+            color: #333;
         }
         
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 40px;
+            background: white;
             border-radius: 20px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
         
-        h1 {
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
             text-align: center;
+        }
+        
+        .header h1 {
             font-size: 2.5rem;
-            margin-bottom: 30px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .content {
+            padding: 30px;
         }
         
         .test-section {
-            background: rgba(255, 255, 255, 0.9);
-            color: #333;
-            padding: 30px;
-            border-radius: 15px;
+            background: #f8fafc;
             margin-bottom: 30px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid #e2e8f0;
         }
         
         .test-section h2 {
-            color: #4f46e5;
-            border-bottom: 2px solid #4f46e5;
-            padding-bottom: 10px;
+            color: #1e40af;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .test-section p {
+            margin-bottom: 20px;
+            line-height: 1.6;
+            color: #64748b;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
             margin-bottom: 20px;
         }
         
         button {
-            background: #4f46e5;
-            color: white;
-            border: none;
             padding: 12px 24px;
-            border-radius: 8px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 16px;
-            margin: 10px 10px 10px 0;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         button:hover {
-            background: #3730a3;
             transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
         }
         
-        button.secondary {
-            background: #6b7280;
+        .primary {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
         }
         
-        button.danger {
-            background: #ef4444;
+        .secondary {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            color: white;
+        }
+        
+        .success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+        
+        .danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
         }
         
         .console-output {
-            background: #1f2937;
-            color: #10b981;
+            background: #1e293b;
+            color: #64748b;
             padding: 20px;
-            border-radius: 8px;
-            font-family: 'Monaco', 'Consolas', monospace;
-            font-size: 14px;
-            overflow-x: auto;
-            white-space: pre-wrap;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
             max-height: 300px;
             overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 20px 0;
+            border: 1px solid #334155;
         }
         
-        .script-urls {
-            background: #f8fafc;
+        .console-output::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .console-output::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 4px;
+        }
+        
+        .console-output::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        
+        .status-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
             padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .status-card.active {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+        
+        .status-card.blocked {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+        
+        .script-demo {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #3b82f6;
+            margin: 15px 0;
+        }
+        
+        .script-demo h4 {
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+        
+        .script-demo pre {
+            background: #0f172a;
+            color: #64748b;
+            padding: 15px;
             border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        
+        .api-info {
+            background: linear-gradient(135deg, #ddd6fe 0%, #c084fc 100%);
+            padding: 20px;
+            border-radius: 10px;
             margin: 20px 0;
         }
         
-        .script-urls input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            margin: 5px 0;
-            font-family: monospace;
+        .api-info h3 {
+            color: #4c1d95;
+            margin-bottom: 10px;
         }
         
-        .features-grid {
+        .api-info code {
+            background: rgba(255,255,255,0.8);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
         }
         
-        .feature-card {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 12px;
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
             text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
         
-        .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1e40af;
         }
+        
+        .stat-label {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .realtime-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #10b981;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .cookie-category {
+            padding: 10px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-size: 0.9rem;
+        }
+        
+        .category-necessary { background: #dcfce7; border-left: 4px solid #10b981; }
+        .category-analytics { background: #dbeafe; border-left: 4px solid #3b82f6; }
+        .category-marketing { background: #fef3c7; border-left: 4px solid #f59e0b; }
+        .category-preferences { background: #f3e8ff; border-left: 4px solid #8b5cf6; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🍪 Test Cookie Banner System</h1>
+        <div class="header">
+            <h1>🍪 Test Cookie Banner System 2.0</h1>
+            <p><span class="realtime-indicator"></span>Sistema di gestione cookie avanzato con scan e blocco intelligente</p>
+        </div>
         
-        <div class="test-section">
-            <h2>📋 Script di Test Disponibili</h2>
-            <p>Puoi testare il cookie banner usando questi script di progetti di esempio:</p>
-            
-            <div class="script-urls">
-                <div>
-                    <strong>Progetto Default:</strong>
-                    <input type="text" value="<script src='/api/script/project_default' async></script>" readonly onclick="this.select()">
+        <div class="content">
+            <!-- Sistema di controllo -->
+            <div class="test-section">
+                <h2>🎮 Controlli Sistema</h2>
+                <p>Gestisci il cookie banner e monitora il sistema in tempo reale</p>
+                
+                <div class="button-group">
+                    <button onclick="loadCookieScript()" class="primary">
+                        🚀 Carica Cookie Banner
+                    </button>
+                    <button onclick="clearCookieConsent()" class="warning">
+                        🧹 Reset Consensi
+                    </button>
+                    <button onclick="showConsentStatus()" class="secondary">
+                        📊 Mostra Status
+                    </button>
+                    <button onclick="toggleMonitoring()" class="success" id="monitoring-btn">
+                        👀 Avvia Monitoraggio
+                    </button>
                 </div>
-                <div>
-                    <strong>Progetto Test (se hai progetti creati):</strong>
-                    <input type="text" id="custom-script" placeholder="<script src='/api/script/YOUR_PROJECT_ID' async></script>" readonly onclick="this.select()">
+                
+                <div id="console-log" class="console-output">
+                    🚀 Sistema di test caricato. Clicca sui pulsanti per iniziare...
                 </div>
             </div>
             
-            <button onclick="loadCookieScript()">🚀 Carica Cookie Banner</button>
-            <button onclick="clearCookieConsent()" class="secondary">🧹 Reset Consensi</button>
-            <button onclick="showConsentStatus()" class="secondary">📊 Mostra Status</button>
-        </div>
+            <!-- Test Script con data-cookie-category -->
+            <div class="test-section">
+                <h2>🧪 Test Script con Categorie</h2>
+                <p>Verifica il blocco intelligente degli script basato sui consensi</p>
+                
+                <div class="button-group">
+                    <button onclick="addTestScripts()" class="primary">
+                        ➕ Aggiungi Script Test
+                    </button>
+                    <button onclick="removeTestScripts()" class="danger">
+                        🗑️ Rimuovi Script Test
+                    </button>
+                    <button onclick="scanScripts()" class="secondary">
+                        🔍 Scansiona Script
+                    </button>
+                </div>
+                
+                <div class="script-demo">
+                    <h4>📝 Esempi di Script con Categorie:</h4>
+                    <pre><code>&lt;script type="text/plain" data-cookie-category="analytics"&gt;
+// Google Analytics
+console.log('GA Script eseguito!');
+&lt;/script&gt;
 
-        <div class="test-section">
-            <h2>🍪 Cookie Scanner in Tempo Reale</h2>
-            <p>Questo scanner mostra tutti i cookie presenti nel browser e li categorizza automaticamente:</p>
-            
-            <div id="cookie-scan-results" class="console-output">
-                Clicca "Scansiona Cookie" per iniziare...
-            </div>
-            
-            <button onclick="scanCurrentCookies()">🔍 Scansiona Cookie</button>
-            <button onclick="addTestCookies()" class="secondary">➕ Aggiungi Cookie di Test</button>
-            <button onclick="clearAllCookies()" class="danger">🗑️ Cancella Tutti i Cookie</button>
-        </div>
+&lt;script type="text/plain" data-cookie-category="marketing"&gt;
+// Facebook Pixel
+console.log('FB Pixel eseguito!');
+&lt;/script&gt;
 
-        <div class="test-section">
-            <h2>🎯 Features Implementate</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">🔍</div>
-                    <h3>Cookie Scanner</h3>
-                    <p>Scansiona automaticamente tutti i cookie presenti e li categorizza</p>
+&lt;script type="text/plain" data-cookie-category="preferences"&gt;
+// Script preferenze utente
+console.log('Preferenze caricate!');
+&lt;/script&gt;</code></pre>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎨</div>
-                    <h3>Banner Personalizzabile</h3>
-                    <p>Editor visuale per personalizzare colori, testi e layout</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📱</div>
-                    <h3>Responsive Design</h3>
-                    <p>Banner ottimizzato per desktop e mobile</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <h3>Google Consent Mode</h3>
-                    <p>Integrazione automatica con Google Analytics</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔒</div>
-                    <h3>GDPR Compliant</h3>
-                    <p>Gestione completa dei consensi secondo GDPR</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">💾</div>
-                    <h3>Backup Cloud</h3>
-                    <p>Sincronizzazione automatica con Turso Database</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="test-section">
-            <h2>🎛️ Test Modal Preferenze (NUOVO!)</h2>
-            <div class="info-box" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; padding: 20px; border-radius: 12px; margin: 20px 0;">
-                <h3 style="margin: 0 0 10px 0;">✨ Modal Preferenze Rinnovato!</h3>
-                <p style="margin: 0;">Il banner ora include un modal moderno per personalizzare i consensi cookie con design professionale e toggle switches!</p>
+                
+                <div id="script-status" class="stats-grid"></div>
             </div>
             
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h4>🎯 Come testare il nuovo modal:</h4>
-                <ol>
-                    <li>Clicca <strong>"Carica Cookie Banner"</strong> sopra per attivare il banner</li>
-                    <li>Nel banner, clicca il pulsante <strong>"Personalizza"</strong></li>
-                    <li>Esplora il nuovo modal con:</li>
-                    <ul>
-                        <li>🎨 Header con gradiente colorato</li>
-                        <li>🔘 Toggle switches moderni per ogni categoria</li>
-                        <li>📝 Descrizioni dettagliate di ogni tipo di cookie</li>
-                        <li>🎯 Pulsanti multipli: "Salva", "Accetta Tutti", "Rifiuta"</li>
-                        <li>✕ Pulsante di chiusura in alto a destra</li>
-                        <li>📱 Design completamente responsive</li>
+            <!-- Scanner Cookie Avanzato -->
+            <div class="test-section">
+                <h2>🔍 Scanner Cookie Avanzato</h2>
+                <p>Scansiona e categorizza automaticamente cookie, localStorage, sessionStorage e script</p>
+                
+                <div class="button-group">
+                    <button onclick="scanEverything()" class="primary">
+                        🔍 Scan Completo
+                    </button>
+                    <button onclick="addTestCookies()" class="success">
+                        ➕ Aggiungi Cookie Test
+                    </button>
+                    <button onclick="clearAllCookies()" class="danger">
+                        🗑️ Cancella Tutto
+                    </button>
+                    <button onclick="exportScanResults()" class="secondary">
+                        💾 Esporta Risultati
+                    </button>
+                </div>
+                
+                <div id="scan-results" class="console-output">
+                    Clicca "Scan Completo" per iniziare la scansione...
+                </div>
+                
+                <div id="scan-summary" class="stats-grid"></div>
+            </div>
+            
+            <!-- API e Integrazioni -->
+            <div class="test-section">
+                <h2>🔗 API e Integrazioni</h2>
+                <p>Testa l'API avanzata del sistema cookie</p>
+                
+                <div class="button-group">
+                    <button onclick="testAPI()" class="primary">
+                        🧪 Test API
+                    </button>
+                    <button onclick="showGoogleConsentMode()" class="secondary">
+                        🎯 Google Consent Mode
+                    </button>
+                    <button onclick="simulateTrackingScripts()" class="warning">
+                        📊 Simula Tracking
+                    </button>
+                </div>
+                
+                <div class="api-info">
+                    <h3>💡 API Disponibili</h3>
+                    <p>Dopo il caricamento del banner, puoi usare:</p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li><code>window.CookieConsent.scanCookies()</code> - Scansiona tutto</li>
+                        <li><code>window.CookieConsent.getConsent()</code> - Ottieni consensi</li>
+                        <li><code>window.CookieConsent.startMonitoring()</code> - Avvia monitoraggio</li>
+                        <li><code>window.CookieConsent.getLastScan()</code> - Ultimi risultati</li>
+                        <li><code>window.CookieConsent.getProjectInfo()</code> - Info progetto</li>
                     </ul>
-                </ol>
+                </div>
+                
+                <div id="api-results" class="console-output"></div>
             </div>
             
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0;">
-                <button onclick="testPreferencesModal()" style="background: #4f46e5; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                    🎨 Mostra Modal Preferenze
-                </button>
-                <button onclick="clearCookieConsent(); setTimeout(loadCookieScript, 100);" style="background: #10b981; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                    🔄 Reset + Ricarica Banner
-                </button>
-            </div>
-        </div>
-
-        <div class="test-section">
-            <h2>📊 Cookie Consent Status</h2>
-            <div id="consent-status" class="console-output">
-                Nessun consenso trovato. Carica il cookie banner per iniziare.
-            </div>
-        </div>
-
-        <div class="test-section">
-            <h2>🧪 Console Log</h2>
-            <div id="console-log" class="console-output">
-                Logs del sistema appariranno qui...
+            <!-- Monitoraggio Real-time -->
+            <div class="test-section">
+                <h2>📊 Monitoraggio Real-time</h2>
+                <p>Visualizza i cambiamenti nei cookie e script in tempo reale</p>
+                
+                <div id="realtime-stats" class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="cookie-count">-</div>
+                        <div class="stat-label">Cookie Totali</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="script-count">-</div>
+                        <div class="stat-label">Script Totali</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="blocked-count">-</div>
+                        <div class="stat-label">Elementi Bloccati</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="consent-status">-</div>
+                        <div class="stat-label">Stato Consenso</div>
+                    </div>
+                </div>
+                
+                <div id="realtime-log" class="console-output"></div>
             </div>
         </div>
     </div>
-
+    
+    <!-- Script di test che verranno bloccati -->
+    <script type="text/plain" data-cookie-category="analytics" id="test-analytics">
+        console.log('✅ ANALYTICS SCRIPT ATTIVO - Google Analytics simulato');
+        // Simula GA
+        window.testAnalytics = true;
+    </script>
+    
+    <script type="text/plain" data-cookie-category="marketing" id="test-marketing">
+        console.log('✅ MARKETING SCRIPT ATTIVO - Facebook Pixel simulato');
+        // Simula FB Pixel
+        window.testMarketing = true;
+    </script>
+    
+    <script type="text/plain" data-cookie-category="preferences" id="test-preferences">
+        console.log('✅ PREFERENCES SCRIPT ATTIVO - Preferenze utente');
+        // Simula preferenze
+        window.testPreferences = true;
+    </script>
+    
     <script>
+        // Variabili globali
+        let monitoringActive = false;
+        let monitoringInterval = null;
+        let scanHistory = [];
+        
         // Override console.log per mostrare i log nella pagina
-        var originalLog = console.log;
-        var logElement = document.getElementById('console-log');
+        const originalLog = console.log;
+        const logElement = document.getElementById('console-log');
         
         console.log = function() {
             originalLog.apply(console, arguments);
-            var timestamp = new Date().toLocaleTimeString();
-            var message = Array.prototype.slice.call(arguments).map(function(arg) {
+            const timestamp = new Date().toLocaleTimeString();
+            const message = Array.prototype.slice.call(arguments).map(function(arg) {
                 return typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg);
             }).join(' ');
             logElement.textContent += '[' + timestamp + '] ' + message + '\n';
             logElement.scrollTop = logElement.scrollHeight;
         };
-
+        
         // Funzione per caricare il cookie script
         function loadCookieScript() {
             // Rimuovi script precedenti
-            var existingScript = document.querySelector('script[src*="/api/script/"]');
+            const existingScript = document.querySelector('script[src*="/api/script/"]');
             if (existingScript) {
                 existingScript.remove();
             }
-
+            
             // Carica nuovo script
-            var script = document.createElement('script');
+            const script = document.createElement('script');
             script.src = '/api/script/project_default';
             script.async = true;
             script.onload = function() {
                 console.log('✅ Cookie script caricato con successo!');
+                
+                // Attende l'evento di inizializzazione
+                window.addEventListener('cookieSystemReady', function(e) {
+                    console.log('🚀 Sistema cookie completamente pronto!');
+                    console.log('📊 Dettagli:', e.detail);
+                    updateRealtimeStats();
+                    
+                    // Avvia monitoraggio automatico
+                    if (window.CookieConsent) {
+                        startRealtimeMonitoring();
+                    }
+                });
+                
                 setTimeout(showConsentStatus, 1000);
             };
             script.onerror = function() {
@@ -281,166 +497,240 @@
             };
             document.head.appendChild(script);
         }
-
+        
         // Funzione per cancellare i consensi
         function clearCookieConsent() {
-            Object.keys(localStorage).forEach(function(key) {
-                if (key.indexOf('cookie_consent_') === 0) {
+            // Rimuovi tutti i cookie di consenso
+            const cookies = document.cookie.split(';');
+            cookies.forEach(cookie => {
+                const name = cookie.split('=')[0].trim();
+                if (name.startsWith('cookie_consent_')) {
+                    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                }
+            });
+            
+            // Rimuovi dal localStorage
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('cookie_consent_')) {
                     localStorage.removeItem(key);
                 }
             });
             
-            // Rimuovi anche il banner se presente
-            var banner = document.getElementById('cookie-banner');
-            if (banner) {
-                banner.remove();
-            }
+            console.log('🧹 Consensi rimossi completamente');
             
-            console.log('🧹 Consensi cookie cancellati');
-            showConsentStatus();
+            // Ricarica la pagina per testare di nuovo
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
         }
-
+        
         // Funzione per mostrare lo status dei consensi
         function showConsentStatus() {
-            var statusElement = document.getElementById('consent-status');
-            var status = '';
+            if (window.CookieConsent) {
+                const consent = window.CookieConsent.getConsent();
+                const hasConsent = window.CookieConsent.hasConsent();
+                const projectInfo = window.CookieConsent.getProjectInfo();
+                
+                console.log('📊 STATUS CONSENSI:');
+                console.log('- Ha consenso:', hasConsent);
+                console.log('- Dettagli consenso:', consent);
+                console.log('- Info progetto:', projectInfo);
+                
+                // Aggiorna stats
+                updateRealtimeStats();
+            } else {
+                console.log('⚠️ Sistema cookie non ancora caricato');
+            }
+        }
+        
+        // Funzione per aggiungere script di test
+        function addTestScripts() {
+            const scripts = [
+                { category: 'analytics', content: 'console.log("📊 Google Analytics Test"); window.gaTest = true;' },
+                { category: 'marketing', content: 'console.log("📢 Facebook Pixel Test"); window.fbTest = true;' },
+                { category: 'preferences', content: 'console.log("⚙️ Preferenze Test"); window.prefTest = true;' }
+            ];
             
-            Object.keys(localStorage).forEach(function(key) {
-                if (key.indexOf('cookie_consent_') === 0) {
-                    var projectId = key.replace('cookie_consent_', '');
-                    var consent = JSON.parse(localStorage.getItem(key));
-                    status += '🎯 Progetto: ' + projectId + '\n';
-                    status += '⏰ Consenso dato: ' + new Date(consent.timestamp).toLocaleString() + '\n';
-                    status += '📋 Consensi:\n';
-                    status += '  🔒 Necessari: ' + (consent.necessary ? '✅' : '❌') + '\n';
-                    status += '  📊 Analytics: ' + (consent.analytics ? '✅' : '❌') + '\n';
-                    status += '  📢 Marketing: ' + (consent.marketing ? '✅' : '❌') + '\n';
-                    status += '  ⚙️ Preferenze: ' + (consent.preferences ? '✅' : '❌') + '\n\n';
+            scripts.forEach((scriptData, index) => {
+                const script = document.createElement('script');
+                script.type = 'text/plain';
+                script.dataset.cookieCategory = scriptData.category;
+                script.id = 'dynamic-test-' + scriptData.category;
+                script.textContent = scriptData.content;
+                document.head.appendChild(script);
+            });
+            
+            console.log('➕ Script di test aggiunti con successo');
+            
+            // Riprocessa gli script se il sistema è attivo
+            if (window.CookieConsent) {
+                setTimeout(() => {
+                    scanScripts();
+                }, 500);
+            }
+        }
+        
+        // Funzione per rimuovere script di test
+        function removeTestScripts() {
+            const testScripts = document.querySelectorAll('script[id^="dynamic-test-"]');
+            testScripts.forEach(script => script.remove());
+            
+            console.log('🗑️ Script di test rimossi');
+            scanScripts();
+        }
+        
+        // Funzione per scansionare script
+        function scanScripts() {
+            if (window.CookieConsent) {
+                const results = window.CookieConsent.scanCookies();
+                const scripts = results.scripts;
+                
+                console.log('🔍 SCANSIONE SCRIPT:');
+                console.log('- Totali:', scripts.total);
+                console.log('- Attivi:', scripts.active);
+                console.log('- Bloccati:', scripts.blocked);
+                console.log('- Per categoria:', scripts.byCategory);
+                
+                // Mostra status visivo
+                updateScriptStatus(scripts);
+            } else {
+                console.log('⚠️ Sistema cookie non disponibile');
+            }
+        }
+        
+        // Funzione per aggiornare lo status degli script
+        function updateScriptStatus(scripts) {
+            const statusDiv = document.getElementById('script-status');
+            statusDiv.innerHTML = '';
+            
+            Object.entries(scripts.byCategory).forEach(([category, scriptList]) => {
+                if (scriptList.length > 0) {
+                    const card = document.createElement('div');
+                    card.className = 'stat-card';
+                    card.innerHTML = `
+                        <div class="stat-number">${scriptList.length}</div>
+                        <div class="stat-label">${category.toUpperCase()}</div>
+                    `;
+                    statusDiv.appendChild(card);
                 }
             });
-            
-            if (!status) {
-                status = 'Nessun consenso cookie trovato';
-            }
-            
-            statusElement.textContent = status;
-            console.log('📊 Status consensi aggiornato');
         }
+        
+        // Funzione per scansione completa
+        function scanEverything() {
+            if (window.CookieConsent) {
+                const results = window.CookieConsent.scanCookies();
+                console.log('🔍 SCANSIONE COMPLETA AVVIATA');
+                
+                // Mostra risultati dettagliati
+                const output = document.getElementById('scan-results');
+                output.textContent = `
+🔍 RISULTATI SCANSIONE COMPLETA
+===============================
 
-        // Funzione per scansionare i cookie attuali
-        function scanCurrentCookies() {
-            var scanElement = document.getElementById('cookie-scan-results');
-            var results = '🔍 SCANSIONE COOKIE COMPLETATA\n\n';
-            
-            // Scansiona cookie del browser
-            var cookies = document.cookie.split(';').filter(function(cookie) {
-                return cookie.trim();
-            });
-            results += '📊 Cookie trovati: ' + cookies.length + '\n\n';
-            
-            if (cookies.length === 0) {
-                results += 'Nessun cookie presente\n';
-            } else {
-                cookies.forEach(function(cookie) {
-                    var parts = cookie.trim().split('=');
-                    var name = parts[0];
-                    var category = categorizeCookie(name);
-                    var emoji = getCategoryEmoji(category);
-                    results += emoji + ' ' + name + ': ' + category + '\n';
+📊 RIEPILOGO:
+- Cookie: ${results.summary.cookies.total}
+- Storage: ${results.summary.storage.total}
+- Script: ${results.summary.scripts.total}
+- Bloccati: ${results.summary.scripts.blocked}
+
+🍪 COOKIE PER CATEGORIA:
+${Object.entries(results.summary.cookies.byCategory).map(([cat, count]) => `- ${cat}: ${count}`).join('\n')}
+
+💾 STORAGE:
+- localStorage: ${results.summary.storage.localStorage}
+- sessionStorage: ${results.summary.storage.sessionStorage}
+
+📜 SCRIPT:
+- Attivi: ${results.summary.scripts.active}
+- Bloccati: ${results.summary.scripts.blocked}
+
+🔍 DETTAGLI COOKIE:
+${Object.entries(results.cookies).map(([name, data]) => `- ${name} [${data.category}]: ${data.value.substring(0, 50)}...`).join('\n')}
+                `;
+                
+                // Aggiorna statistiche
+                updateScanSummary(results.summary);
+                
+                // Salva nella cronologia
+                scanHistory.push({
+                    timestamp: new Date().toLocaleTimeString(),
+                    results: results
                 });
-            }
-            
-            // Scansiona localStorage
-            results += '\n💾 LOCAL STORAGE:\n';
-            for (var i = 0; i < localStorage.length; i++) {
-                var key = localStorage.key(i);
-                var category = categorizeCookie(key);
-                var emoji = getCategoryEmoji(category);
-                results += emoji + ' ' + key + ': ' + category + '\n';
-            }
-            
-            // Scansiona sessionStorage
-            results += '\n⚡ SESSION STORAGE:\n';
-            for (var i = 0; i < sessionStorage.length; i++) {
-                var key = sessionStorage.key(i);
-                var category = categorizeCookie(key);
-                var emoji = getCategoryEmoji(category);
-                results += emoji + ' ' + key + ': ' + category + '\n';
-            }
-            
-            scanElement.textContent = results;
-            console.log('🔍 Scansione cookie completata');
-        }
-
-        // Funzione per categorizzare i cookie
-        function categorizeCookie(name) {
-            if (!name) return 'unknown';
-            
-            var lowerName = name.toLowerCase();
-            
-            if (lowerName.indexOf('session') !== -1 || lowerName.indexOf('csrf') !== -1 || 
-                lowerName.indexOf('auth') !== -1 || lowerName.indexOf('security') !== -1) {
-                return 'necessary';
-            }
-            if (lowerName.indexOf('ga') !== -1 || lowerName.indexOf('analytics') !== -1 || 
-                lowerName.indexOf('gtm') !== -1 || lowerName.indexOf('_utm') !== -1) {
-                return 'analytics';
-            }
-            if (lowerName.indexOf('fb') !== -1 || lowerName.indexOf('ads') !== -1 || 
-                lowerName.indexOf('marketing') !== -1 || lowerName.indexOf('track') !== -1) {
-                return 'marketing';
-            }
-            if (lowerName.indexOf('pref') !== -1 || lowerName.indexOf('settings') !== -1 || 
-                lowerName.indexOf('lang') !== -1 || lowerName.indexOf('theme') !== -1) {
-                return 'preferences';
-            }
-            
-            return 'necessary';
-        }
-
-        // Funzione per ottenere emoji per categoria
-        function getCategoryEmoji(category) {
-            switch (category) {
-                case 'necessary': return '🔒';
-                case 'analytics': return '📊';
-                case 'marketing': return '📢';
-                case 'preferences': return '⚙️';
-                default: return '❓';
+                
+                console.log('✅ Scansione completata');
+            } else {
+                console.log('⚠️ Sistema cookie non disponibile');
             }
         }
-
+        
+        // Funzione per aggiornare il sommario della scansione
+        function updateScanSummary(summary) {
+            const summaryDiv = document.getElementById('scan-summary');
+            summaryDiv.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${summary.cookies.total}</div>
+                    <div class="stat-label">Cookie</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${summary.storage.total}</div>
+                    <div class="stat-label">Storage Items</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${summary.scripts.total}</div>
+                    <div class="stat-label">Script</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${summary.scripts.blocked}</div>
+                    <div class="stat-label">Bloccati</div>
+                </div>
+            `;
+        }
+        
         // Funzione per aggiungere cookie di test
         function addTestCookies() {
-            document.cookie = 'test_session=abc123; path=/';
-            document.cookie = 'ga_test=analytics_data; path=/';
-            document.cookie = 'fb_tracking=marketing_pixel; path=/';
-            document.cookie = 'user_preferences=dark_theme; path=/';
+            const testCookies = [
+                { name: 'test_session', value: 'abc123', category: 'necessary' },
+                { name: '_ga_test', value: 'GA1.2.123456789', category: 'analytics' },
+                { name: '_fbp_test', value: 'fb.1.123456789', category: 'marketing' },
+                { name: 'user_theme', value: 'dark', category: 'preferences' }
+            ];
             
-            localStorage.setItem('test_analytics_data', 'user_behavior');
-            localStorage.setItem('user_settings', JSON.stringify({ theme: 'dark', lang: 'it' }));
+            testCookies.forEach(cookie => {
+                document.cookie = `${cookie.name}=${cookie.value}; path=/; max-age=3600`;
+            });
+            
+            // Aggiungi anche al localStorage
+            localStorage.setItem('test_analytics_data', JSON.stringify({user: 'test', events: 123}));
+            localStorage.setItem('user_preferences', JSON.stringify({theme: 'dark', lang: 'it'}));
             localStorage.setItem('marketing_consent', 'granted');
             
-            sessionStorage.setItem('session_temp', 'temp_data');
-            sessionStorage.setItem('csrf_token', 'security_token_123');
+            // Aggiungi al sessionStorage
+            sessionStorage.setItem('session_temp', 'temp_data_123');
+            sessionStorage.setItem('csrf_token', 'security_token_abc123');
             
-            console.log('➕ Cookie di test aggiunti');
-            scanCurrentCookies();
+            console.log('➕ Cookie e storage di test aggiunti');
+            
+            // Scansiona automaticamente
+            setTimeout(scanEverything, 500);
         }
-
-        // Funzione per cancellare tutti i cookie
+        
+        // Funzione per cancellare tutto
         function clearAllCookies() {
             // Cancella tutti i cookie
             document.cookie.split(";").forEach(function(cookie) {
-                var eqPos = cookie.indexOf("=");
-                var name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
-                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=." + window.location.hostname;
+                const eqPos = cookie.indexOf("=");
+                const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                if (name && !name.startsWith('cookie_consent_')) {
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=." + window.location.hostname;
+                }
             });
             
-            // Cancella localStorage (tranne i consensi)
+            // Cancella localStorage (tranne consensi)
             Object.keys(localStorage).forEach(function(key) {
-                if (key.indexOf('cookie_consent_') !== 0) {
+                if (!key.startsWith('cookie_consent_')) {
                     localStorage.removeItem(key);
                 }
             });
@@ -448,62 +738,229 @@
             // Cancella sessionStorage
             sessionStorage.clear();
             
-            console.log('🗑️ Tutti i cookie e storage cancellati');
-            scanCurrentCookies();
+            console.log('🗑️ Tutti i cookie e storage cancellati (consensi preservati)');
+            
+            // Scansiona per verificare
+            setTimeout(scanEverything, 500);
         }
-
-        // Carica automaticamente lo status all'avvio
+        
+        // Funzione per esportare i risultati
+        function exportScanResults() {
+            if (scanHistory.length === 0) {
+                console.log('⚠️ Nessun risultato da esportare');
+                return;
+            }
+            
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                scanHistory: scanHistory,
+                currentStatus: window.CookieConsent ? window.CookieConsent.getLastScan() : null
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'cookie-scan-results-' + new Date().toISOString().slice(0, 10) + '.json';
+            link.click();
+            
+            URL.revokeObjectURL(url);
+            console.log('💾 Risultati esportati con successo');
+        }
+        
+        // Funzione per testare l'API
+        function testAPI() {
+            if (!window.CookieConsent) {
+                console.log('⚠️ API non disponibile');
+                return;
+            }
+            
+            const apiResults = document.getElementById('api-results');
+            
+            try {
+                const tests = [
+                    { name: 'getProjectInfo', result: window.CookieConsent.getProjectInfo() },
+                    { name: 'hasConsent', result: window.CookieConsent.hasConsent() },
+                    { name: 'getConsent', result: window.CookieConsent.getConsent() },
+                    { name: 'getLastScan', result: window.CookieConsent.getLastScan() }
+                ];
+                
+                let output = '🧪 TEST API COMPLETATI\n===================\n\n';
+                
+                tests.forEach(test => {
+                    output += `✅ ${test.name}:\n`;
+                    output += JSON.stringify(test.result, null, 2) + '\n\n';
+                });
+                
+                apiResults.textContent = output;
+                console.log('🧪 Test API completati con successo');
+                
+            } catch (error) {
+                console.log('❌ Errore durante i test API:', error);
+                apiResults.textContent = 'Errore durante i test API: ' + error.message;
+            }
+        }
+        
+        // Funzione per mostrare Google Consent Mode
+        function showGoogleConsentMode() {
+            console.log('🎯 GOOGLE CONSENT MODE STATUS:');
+            
+            if (typeof gtag !== 'undefined') {
+                console.log('✅ Google gtag disponibile');
+                
+                // Mostra lo stato del dataLayer
+                if (window.dataLayer) {
+                    console.log('📊 DataLayer entries:', window.dataLayer.length);
+                    
+                    // Trova le entries di consent
+                    const consentEntries = window.dataLayer.filter(entry => 
+                        entry && entry[0] === 'consent'
+                    );
+                    
+                    console.log('🔍 Consent entries:', consentEntries);
+                } else {
+                    console.log('⚠️ DataLayer non disponibile');
+                }
+            } else {
+                console.log('⚠️ Google gtag non disponibile');
+            }
+        }
+        
+        // Funzione per simulare script di tracking
+        function simulateTrackingScripts() {
+            const trackingScripts = [
+                'https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID',
+                'https://connect.facebook.net/en_US/fbevents.js',
+                'https://www.googleadservices.com/pagead/conversion_async.js'
+            ];
+            
+            trackingScripts.forEach(src => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.async = true;
+                script.dataset.cookieCategory = 'marketing';
+                
+                // Non aggiungere realmente al DOM, solo testare il blocco
+                console.log('🧪 Simulando caricamento script:', src);
+                
+                // Testa se verrebbe bloccato
+                if (window.CookieConsent) {
+                    const isBlocked = window.CookieConsent.isBlocked(src);
+                    console.log('- Bloccato:', isBlocked);
+                }
+            });
+        }
+        
+        // Funzione per toggle monitoraggio
+        function toggleMonitoring() {
+            const btn = document.getElementById('monitoring-btn');
+            
+            if (monitoringActive) {
+                stopRealtimeMonitoring();
+                btn.textContent = '👀 Avvia Monitoraggio';
+                btn.className = 'success';
+            } else {
+                startRealtimeMonitoring();
+                btn.textContent = '⏹️ Ferma Monitoraggio';
+                btn.className = 'danger';
+            }
+        }
+        
+        // Funzione per avviare monitoraggio real-time
+        function startRealtimeMonitoring() {
+            if (monitoringActive) return;
+            
+            monitoringActive = true;
+            console.log('👀 Monitoraggio real-time avviato');
+            
+            monitoringInterval = setInterval(() => {
+                updateRealtimeStats();
+                logRealtimeChanges();
+            }, 2000);
+        }
+        
+        // Funzione per fermare monitoraggio real-time
+        function stopRealtimeMonitoring() {
+            if (!monitoringActive) return;
+            
+            monitoringActive = false;
+            clearInterval(monitoringInterval);
+            console.log('⏹️ Monitoraggio real-time fermato');
+        }
+        
+        // Funzione per aggiornare statistiche real-time
+        function updateRealtimeStats() {
+            const cookieCount = document.cookie.split(';').filter(c => c.trim()).length;
+            const scriptCount = document.querySelectorAll('script').length;
+            const blockedCount = document.querySelectorAll('script[data-blocked="true"]').length;
+            
+            let consentStatus = 'Nessuno';
+            if (window.CookieConsent) {
+                const consent = window.CookieConsent.getConsent();
+                if (consent) {
+                    const granted = Object.values(consent).filter(v => v === true).length;
+                    consentStatus = `${granted}/4`;
+                }
+            }
+            
+            document.getElementById('cookie-count').textContent = cookieCount;
+            document.getElementById('script-count').textContent = scriptCount;
+            document.getElementById('blocked-count').textContent = blockedCount;
+            document.getElementById('consent-status').textContent = consentStatus;
+        }
+        
+        // Funzione per loggare cambiamenti real-time
+        function logRealtimeChanges() {
+            if (!window.CookieConsent) return;
+            
+            const currentScan = window.CookieConsent.getLastScan();
+            if (!currentScan) return;
+            
+            const logDiv = document.getElementById('realtime-log');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const summary = currentScan.summary;
+            const logEntry = `[${timestamp}] 🔄 Cookies: ${summary.cookies.total} | Scripts: ${summary.scripts.total} | Bloccati: ${summary.scripts.blocked}\n`;
+            
+            logDiv.textContent += logEntry;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            // Mantieni solo le ultime 20 righe
+            const lines = logDiv.textContent.split('\n');
+            if (lines.length > 20) {
+                logDiv.textContent = lines.slice(-20).join('\n');
+            }
+        }
+        
+        // Inizializzazione automatica
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Pagina di test caricata');
-            console.log('💡 Usa i pulsanti per testare il sistema di cookie');
+            console.log('🚀 Pagina di test Cookie Banner System 2.0 caricata');
+            console.log('💡 Clicca "Carica Cookie Banner" per iniziare i test');
             
-            showConsentStatus();
-            scanCurrentCookies();
-            
-            // Imposta un ID progetto personalizzato se disponibile nei parametri URL
-            var urlParams = new URLSearchParams(window.location.search);
-            var projectId = urlParams.get('project');
-            if (projectId) {
-                document.getElementById('custom-script').value = '<script src="/api/script/' + projectId + '" async></script>';
-                console.log('🎯 Progetto personalizzato impostato: ' + projectId);
-            }
-        });
-
-        // Funzione per testare il modal delle preferenze
-        function testPreferencesModal() {
-            // Prima assicurati che il banner sia presente
-            var banner = document.getElementById('cookie-banner');
-            if (!banner) {
-                console.log('⚠️ Banner non trovato. Caricando...');
+            // Auto-carica il sistema dopo 2 secondi
+            setTimeout(() => {
+                console.log('⏳ Auto-caricamento del sistema cookie...');
                 loadCookieScript();
-                setTimeout(function() {
-                    activatePreferencesModal();
-                }, 2000);
-            } else {
-                activatePreferencesModal();
-            }
-        }
-
-        function activatePreferencesModal() {
-            var settingsBtn = document.querySelector('#cookie-settings');
-            if (settingsBtn) {
-                console.log('🎨 Aprendo modal preferenze...');
-                settingsBtn.click();
-            } else {
-                console.log('❌ Pulsante Personalizza non trovato');
-            }
-        }
-
-        // Esponi funzioni globali per debug
-        window.CookieTest = {
-            loadScript: loadCookieScript,
-            clearConsent: clearCookieConsent,
-            showStatus: showConsentStatus,
-            scanCookies: scanCurrentCookies,
-            addTestCookies: addTestCookies,
-            clearAllCookies: clearAllCookies,
-            testModal: testPreferencesModal
-        };
+            }, 2000);
+            
+            // Aggiorna le statistiche ogni 5 secondi
+            setInterval(updateRealtimeStats, 5000);
+        });
+        
+        // Event listener per eventi personalizzati
+        window.addEventListener('cookieSystemReady', function(event) {
+            console.log('🎉 Sistema cookie completamente inizializzato!');
+            console.log('📊 Dettagli sistema:', event.detail);
+            
+            // Avvia test automatici
+            setTimeout(() => {
+                console.log('🧪 Avvio test automatici...');
+                addTestCookies();
+                setTimeout(scanEverything, 1000);
+            }, 2000);
+        });
     </script>
 </body>
 </html> 

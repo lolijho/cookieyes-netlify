@@ -71,6 +71,13 @@ export async function POST(request: NextRequest) {
         analytics: true,
         marketing: true,
         preferences: true
+      },
+      floatingIcon: {
+        enabled: true,
+        position: 'bottom-right',
+        text: '🍪',
+        backgroundColor: '#4f46e5',
+        textColor: '#ffffff'
       }
     };
 
