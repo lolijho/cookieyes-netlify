@@ -112,13 +112,18 @@ export function ProjectsManager({ userId }: ProjectsManagerProps) {
       const newProject = await response.json();
       
       // Salviamo il progetto nel localStorage
-      const savedProject = LocalProjectsManager.create({
-        user_id: userId,
-        name: formData.name,
-        domain: formData.domain,
-        language: formData.language,
-        banner_config: newProject.banner_config
-      });
+      let savedProject;
+      try {
+        savedProject = LocalProjectsManager.create({
+          user_id: userId,
+          name: formData.name,
+          domain: formData.domain,
+          language: formData.language,
+          banner_config: newProject.banner_config
+        });
+      } catch (duplicateError) {
+        throw new Error(`Un progetto con questo nome e dominio già esiste. Scegli un nome o dominio diverso.`);
+      }
       
       // Aggiorniamo lo state
       setProjects([savedProject, ...projects]);
@@ -429,16 +434,26 @@ export function ProjectsManager({ userId }: ProjectsManagerProps) {
                     >
                       📋 Copia Script
                     </Button>
-                                          <Button
-                        onClick={() => {
-                          window.open(`/editor/${project.id}`, '_blank');
-                        }}
-                        size="sm"
-                        variant="outline"
-                        className="text-purple-600 border-purple-600 hover:bg-purple-600 hover:text-white"
-                      >
-                        🎨 Personalizza Banner
-                      </Button>
+                    <Button
+                      onClick={() => {
+                        window.open(`/editor/${project.id}`, '_blank');
+                      }}
+                      size="sm"
+                      variant="outline"
+                      className="text-purple-600 border-purple-600 hover:bg-purple-600 hover:text-white"
+                    >
+                      🎨 Personalizza Banner
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        window.open(`/analytics/${project.id}`, '_blank');
+                      }}
+                      size="sm"
+                      variant="outline"
+                      className="text-green-600 border-green-600 hover:bg-green-600 hover:text-white"
+                    >
+                      📊 Analytics
+                    </Button>
                     <Button
                       onClick={() => handleDeleteProject(project.id)}
                       size="sm"

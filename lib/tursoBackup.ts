@@ -86,25 +86,29 @@ export class TursoBackup {
       const data = await response.json();
       
       if (data.projects && data.projects.length > 0) {
-        // Merge dei progetti (localStorage ha priorità)
+        // Merge intelligente dei progetti (localStorage ha priorità)
         const localProjects = LocalProjectsManager.getAll();
         const localIds = new Set(localProjects.map(p => p.id));
+        const localNameDomains = new Set(localProjects.map(p => `${p.name}|||${p.domain}`));
         
-        // Aggiungi solo i progetti che non esistono localmente
-        const newProjects = data.projects.filter((p: ProjectLocal) => !localIds.has(p.id));
+        // Filtra progetti che non esistono per ID o per nome+dominio
+        const newProjects = data.projects.filter((p: ProjectLocal) => 
+          !localIds.has(p.id) && !localNameDomains.has(`${p.name}|||${p.domain}`)
+        );
         
+        let restoredCount = 0;
         for (const project of newProjects) {
-          LocalProjectsManager.create({
-            user_id: project.user_id,
-            name: project.name,
-            domain: project.domain,
-            language: project.language,
-            banner_config: project.banner_config
-          });
+          try {
+            // Usa createWithId per preservare l'ID originale e controllare duplicati
+            LocalProjectsManager.createWithId(project);
+            restoredCount++;
+          } catch (error) {
+            console.warn(`Saltato progetto duplicato: ${project.name} - ${project.domain}`);
+          }
         }
         
-        console.log(`✅ Ripristinati ${newProjects.length} progetti da Turso`);
-        return true;
+        console.log(`✅ Ripristinati ${restoredCount} progetti da Turso (${newProjects.length - restoredCount} saltati per duplicati)`);
+        return restoredCount > 0;
       }
       
       return false;

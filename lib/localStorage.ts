@@ -40,6 +40,15 @@ export class LocalProjectsManager {
   // Crea un nuovo progetto
   static create(projectData: Omit<ProjectLocal, 'id' | 'created_at' | 'updated_at'>): ProjectLocal {
     const projects = this.getAll()
+    
+    // Controlla se esiste già un progetto con stesso nome+dominio
+    const existingByNameDomain = projects.find(p => 
+      p.name === projectData.name && p.domain === projectData.domain
+    )
+    if (existingByNameDomain) {
+      throw new Error(`Progetto con nome "${projectData.name}" e dominio "${projectData.domain}" già esistente`)
+    }
+    
     const now = new Date().toISOString()
     
     const newProject: ProjectLocal = {
@@ -96,6 +105,38 @@ export class LocalProjectsManager {
   // Genera un ID unico
   static generateId(): string {
     return 'project_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+  }
+
+  // Crea un progetto preservando l'ID originale (per restore da backup)
+  static createWithId(projectData: ProjectLocal): ProjectLocal {
+    const projects = this.getAll()
+    
+    // Controlla se esiste già un progetto con lo stesso ID
+    const existingById = projects.find(p => p.id === projectData.id)
+    if (existingById) {
+      console.warn(`Progetto con ID ${projectData.id} già esistente, non creato`)
+      return existingById
+    }
+    
+    // Controlla se esiste già un progetto con stesso nome+dominio
+    const existingByNameDomain = projects.find(p => 
+      p.name === projectData.name && p.domain === projectData.domain
+    )
+    if (existingByNameDomain) {
+      console.warn(`Progetto con nome "${projectData.name}" e dominio "${projectData.domain}" già esistente, non creato`)
+      return existingByNameDomain
+    }
+    
+    projects.push(projectData)
+    this.saveAll(projects)
+    
+    return projectData
+  }
+
+  // Verifica se esiste un progetto duplicato (stesso nome + dominio)
+  static isDuplicate(name: string, domain: string): boolean {
+    const projects = this.getAll()
+    return projects.some(p => p.name === name && p.domain === domain)
   }
 
   // Esporta tutti i progetti come JSON (per backup)

@@ -131,31 +131,66 @@ function generateCookieBannerScript(project: any): string {
       return { cookies, storage };
     },
     
-    // Categorizza i cookie per nome
+    // Categorizza i cookie per nome con database più avanzato
     categorizeByName: function(name) {
       const lowerName = name.toLowerCase();
       
-      // Cookie necessari (sempre consentiti)
-      if (lowerName.includes('session') || lowerName.includes('csrf') || lowerName.includes('auth') || lowerName.includes('security')) {
-        return 'necessary';
+      // Database avanzato di categorizzazione
+      const cookieDatabase = {
+        necessary: [
+          'session', 'csrf', 'auth', 'security', 'login', 'token', 'xsrf',
+          'phpsessid', 'jsessionid', 'asp.net_sessionid', 'cfid', 'cftoken',
+          'ci_session', 'laravel_session', 'connect.sid', 'rack.session',
+          'wordpress_logged_in', 'wp-settings', 'wordpress_test_cookie',
+          'cookieyes', 'cookie_consent', 'gdpr', 'necessary', 'essential',
+          'functional', 'technical', 'performance', 'basic', 'core'
+        ],
+        analytics: [
+          'ga', 'google', 'analytics', 'gtm', 'gtag', '_utm', '_gid', '_gat',
+          'collect', 'doubleclick', 'adsystem', 'googlesyndication',
+          'hotjar', 'mixpanel', 'segment', 'amplitude', 'heap', 'fullstory',
+          'mouseflow', 'crazy', 'quantcast', 'comscore', 'nielsen', 'scorecard',
+          'chartbeat', 'parsely', 'adobe', 'omniture', 'sitecatalyst',
+          'piwik', 'matomo', 'yandex', 'metrika', 'baidu', 'cnzz'
+        ],
+        marketing: [
+          'fb', 'facebook', 'ads', 'advertising', 'marketing', 'track', 'pixel',
+          'adnxs', 'adsystem', 'doubleclick', 'googlesyndication', 'amazon',
+          'twitter', 'linkedin', 'pinterest', 'instagram', 'snapchat', 'tiktok',
+          'youtube', 'vimeo', 'outbrain', 'taboola', 'criteo', 'medianet',
+          'bing', 'yahoo', 'rtb', 'programmatic', 'retargeting', 'remarketing',
+          'conversion', 'affiliate', 'partner', 'referral', 'campaign'
+        ],
+        preferences: [
+          'pref', 'preference', 'settings', 'config', 'lang', 'language',
+          'locale', 'theme', 'dark', 'light', 'currency', 'timezone',
+          'region', 'country', 'city', 'location', 'accessibility',
+          'font', 'size', 'color', 'layout', 'view', 'display',
+          'remember', 'save', 'store', 'custom', 'personal', 'user'
+        ]
+      };
+      
+      // Verifica le categorie in ordine di priorità
+      for (const [category, keywords] of Object.entries(cookieDatabase)) {
+        if (keywords.some(keyword => lowerName.includes(keyword))) {
+          return category;
+        }
       }
       
-      // Cookie di analytics
-      if (lowerName.includes('ga') || lowerName.includes('analytics') || lowerName.includes('gtm') || lowerName.includes('_utm')) {
-        return 'analytics';
+      // Pattern matching avanzato per domini specifici
+      const domainPatterns = {
+        analytics: /^_(ga|gid|gat|utm|fbp|fbc|tj|hjid|hj|mp_|amp_|heap|fs_|mf_|ceg|qc|nr|sc|parsely|s_|adobe|omtr|piwik|matomo|ya|ba|cnzz)/,
+        marketing: /^(fr|tr|ads|ad_|fb|ig|tw|li|pin|sc|tt|yt|vm|ob|tb|cto|mn|ms|yh|rtb|prog|retarg|conv|aff|ref|camp)/,
+        preferences: /^(pref|set|cfg|lang|loc|theme|curr|tz|reg|acc|font|col|lay|view|disp|rem|sav|cust|pers|usr)/
+      };
+      
+      for (const [category, pattern] of Object.entries(domainPatterns)) {
+        if (pattern.test(lowerName)) {
+          return category;
+        }
       }
       
-      // Cookie di marketing
-      if (lowerName.includes('fb') || lowerName.includes('ads') || lowerName.includes('marketing') || lowerName.includes('track')) {
-        return 'marketing';
-      }
-      
-      // Cookie di preferenze
-      if (lowerName.includes('pref') || lowerName.includes('settings') || lowerName.includes('lang') || lowerName.includes('theme')) {
-        return 'preferences';
-      }
-      
-      return 'necessary'; // Default: necessari
+      return 'necessary'; // Default: necessari per sicurezza
     },
     
     // Scansiona localStorage e sessionStorage
@@ -239,6 +274,9 @@ function generateCookieBannerScript(project: any): string {
       // Rimuove i cookie non consentiti
       this.manageCookies(consents);
       
+      // Sblocca script precedentemente bloccati
+      ScriptBlocker.unblockScripts(consents);
+      
       // Gestisce Google Consent Mode se disponibile
       if (typeof gtag !== 'undefined') {
         gtag('consent', 'update', {
@@ -254,6 +292,12 @@ function generateCookieBannerScript(project: any): string {
       
       // Attiva/disattiva script di terze parti
       this.manageThirdPartyScripts(consents);
+      
+      // Scansiona nuovamente i cookie dopo l'applicazione dei consensi
+      setTimeout(() => {
+        const scanResult = CookieScanner.scanCookies();
+        console.log('Cookie scansionati dopo consenso:', scanResult);
+      }, 1000);
     },
     
     // Gestisce i cookie esistenti
@@ -713,7 +757,249 @@ function generateCookieBannerScript(project: any): string {
     }
   };
   
+  // === BLOCCO PREVENTIVO SCRIPT ===
+  const ScriptBlocker = {
+    // Lista di script da bloccare prima del consenso
+    blockedScripts: [
+      'googletagmanager.com/gtag/js',
+      'google-analytics.com/analytics.js',
+      'googletagmanager.com/gtm.js',
+      'facebook.net/en_US/fbevents.js',
+      'connect.facebook.net',
+      'doubleclick.net',
+      'googlesyndication.com',
+      'hotjar.com',
+      'mixpanel.com',
+      'segment.com',
+      'amplitude.com',
+      'fullstory.com',
+      'mouseflow.com',
+      'crazyegg.com',
+      'quantcast.com',
+      'comscore.com',
+      'chartbeat.com',
+      'twitter.com/i/adsct',
+      'linkedin.com/insight',
+      'pinterest.com/ct',
+      'snapchat.com/ct',
+      'tiktok.com/i18n/pixel',
+      'youtube.com/iframe_api',
+      'vimeo.com/api',
+      'outbrain.com',
+      'taboola.com',
+      'criteo.com',
+      'amazon-adsystem.com',
+      'bing.com/scripts',
+      'yahoo.com/dot.gif',
+      'yandex.ru/metrika',
+      'baidu.com/h.js'
+    ],
+    
+    // Inizializza il blocco preventivo
+    init: function() {
+      this.blockScripts();
+      this.blockForms();
+      this.blockImages();
+      this.interceptCookies();
+    },
+    
+    // Blocca script non consentiti
+    blockScripts: function() {
+      const originalCreateElement = document.createElement;
+      const originalAppendChild = Element.prototype.appendChild;
+      
+      // Intercetta creazione elementi script
+      document.createElement = function(tagName) {
+        const element = originalCreateElement.call(this, tagName);
+        
+        if (tagName.toLowerCase() === 'script' && element.src) {
+          const consent = ConsentManager.getConsent();
+          if (!consent && ScriptBlocker.isBlocked(element.src)) {
+            console.log('Script bloccato:', element.src);
+            element.type = 'text/plain';
+            element.dataset.blocked = 'true';
+            element.dataset.originalSrc = element.src;
+            element.src = '';
+          }
+        }
+        
+        return element;
+      };
+      
+      // Intercetta inserimento script nel DOM
+      Element.prototype.appendChild = function(child) {
+        if (child.tagName && child.tagName.toLowerCase() === 'script') {
+          const consent = ConsentManager.getConsent();
+          if (!consent && child.src && ScriptBlocker.isBlocked(child.src)) {
+            console.log('Script bloccato durante appendChild:', child.src);
+            child.type = 'text/plain';
+            child.dataset.blocked = 'true';
+            child.dataset.originalSrc = child.src;
+            child.src = '';
+          }
+        }
+        
+        return originalAppendChild.call(this, child);
+      };
+    },
+    
+    // Blocca form tracking
+    blockForms: function() {
+      const originalSubmit = HTMLFormElement.prototype.submit;
+      
+      HTMLFormElement.prototype.submit = function() {
+        const consent = ConsentManager.getConsent();
+        if (!consent || !consent.marketing) {
+          // Rimuove eventuali pixel di tracking nei form
+          const trackingElements = this.querySelectorAll('img[src*="facebook.com"], img[src*="google.com"], img[src*="doubleclick.net"]');
+          trackingElements.forEach(el => el.remove());
+        }
+        
+        return originalSubmit.call(this);
+      };
+    },
+    
+    // Blocca immagini di tracking
+    blockImages: function() {
+      const originalCreateElement = document.createElement;
+      
+      document.createElement = function(tagName) {
+        const element = originalCreateElement.call(this, tagName);
+        
+        if (tagName.toLowerCase() === 'img' && element.src) {
+          const consent = ConsentManager.getConsent();
+          if (!consent && ScriptBlocker.isTrackingPixel(element.src)) {
+            console.log('Pixel di tracking bloccato:', element.src);
+            element.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            element.dataset.blocked = 'true';
+          }
+        }
+        
+        return element;
+      };
+    },
+    
+    // Intercetta l'impostazione dei cookie
+    interceptCookies: function() {
+      const originalCookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+      
+      Object.defineProperty(document, 'cookie', {
+        get: function() {
+          return originalCookieDescriptor.get.call(this);
+        },
+        set: function(value) {
+          const consent = ConsentManager.getConsent();
+          if (consent) {
+            const cookieName = value.split('=')[0];
+            const category = CookieScanner.categorizeByName(cookieName);
+            
+            if (consent[category]) {
+              return originalCookieDescriptor.set.call(this, value);
+            } else {
+              console.log('Cookie bloccato:', cookieName, 'categoria:', category);
+              return;
+            }
+          }
+          
+          // Se non c'è consenso, blocca tutti i cookie tranne quelli necessari
+          const cookieName = value.split('=')[0];
+          const category = CookieScanner.categorizeByName(cookieName);
+          
+          if (category === 'necessary') {
+            return originalCookieDescriptor.set.call(this, value);
+          } else {
+            console.log('Cookie bloccato (senza consenso):', cookieName);
+            return;
+          }
+        },
+        configurable: true
+      });
+    },
+    
+    // Verifica se uno script è bloccato
+    isBlocked: function(url) {
+      return this.blockedScripts.some(blocked => url.includes(blocked));
+    },
+    
+    // Verifica se un'immagine è un pixel di tracking
+    isTrackingPixel: function(url) {
+      const trackingDomains = [
+        'facebook.com/tr',
+        'google.com/ads',
+        'doubleclick.net',
+        'googleadservices.com',
+        'googlesyndication.com',
+        'amazon-adsystem.com',
+        'bing.com/tr',
+        'yahoo.com/dot.gif',
+        'twitter.com/i/adsct',
+        'linkedin.com/insight',
+        'pinterest.com/ct',
+        'snapchat.com/ct',
+        'tiktok.com/i18n/pixel'
+      ];
+      
+      return trackingDomains.some(domain => url.includes(domain));
+    },
+    
+    // Riattiva script bloccati dopo consenso
+    unblockScripts: function(consents) {
+      const blockedScripts = document.querySelectorAll('script[data-blocked="true"]');
+      
+      blockedScripts.forEach(script => {
+        const originalSrc = script.dataset.originalSrc;
+        if (originalSrc) {
+          const category = this.categorizeScript(originalSrc);
+          
+          if (consents[category]) {
+            console.log('Riattivando script:', originalSrc);
+            script.src = originalSrc;
+            script.type = 'text/javascript';
+            script.removeAttribute('data-blocked');
+            script.removeAttribute('data-original-src');
+          }
+        }
+      });
+    },
+    
+    // Categorizza script per URL
+    categorizeScript: function(url) {
+      const lowerUrl = url.toLowerCase();
+      
+      // Analytics
+      if (lowerUrl.includes('google-analytics') || lowerUrl.includes('gtag') || lowerUrl.includes('gtm') || 
+          lowerUrl.includes('hotjar') || lowerUrl.includes('mixpanel') || lowerUrl.includes('segment') ||
+          lowerUrl.includes('amplitude') || lowerUrl.includes('fullstory') || lowerUrl.includes('mouseflow') ||
+          lowerUrl.includes('crazyegg') || lowerUrl.includes('quantcast') || lowerUrl.includes('comscore') ||
+          lowerUrl.includes('chartbeat') || lowerUrl.includes('parsely') || lowerUrl.includes('adobe') ||
+          lowerUrl.includes('omniture') || lowerUrl.includes('piwik') || lowerUrl.includes('matomo') ||
+          lowerUrl.includes('yandex') || lowerUrl.includes('metrika') || lowerUrl.includes('baidu')) {
+        return 'analytics';
+      }
+      
+      // Marketing
+      if (lowerUrl.includes('facebook') || lowerUrl.includes('doubleclick') || lowerUrl.includes('googlesyndication') ||
+          lowerUrl.includes('amazon-adsystem') || lowerUrl.includes('twitter') || lowerUrl.includes('linkedin') ||
+          lowerUrl.includes('pinterest') || lowerUrl.includes('snapchat') || lowerUrl.includes('tiktok') ||
+          lowerUrl.includes('outbrain') || lowerUrl.includes('taboola') || lowerUrl.includes('criteo') ||
+          lowerUrl.includes('bing') || lowerUrl.includes('yahoo')) {
+        return 'marketing';
+      }
+      
+      // Preferences
+      if (lowerUrl.includes('preferences') || lowerUrl.includes('settings') || lowerUrl.includes('config') ||
+          lowerUrl.includes('theme') || lowerUrl.includes('lang') || lowerUrl.includes('locale')) {
+        return 'preferences';
+      }
+      
+      return 'necessary';
+    }
+  };
+  
   // === INIZIALIZZAZIONE ===
+  
+  // Inizializza il blocco preventivo IMMEDIATAMENTE
+  ScriptBlocker.init();
   
   // Aspetta che il DOM sia pronto
   if (document.readyState === 'loading') {
