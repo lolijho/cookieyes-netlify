@@ -35,6 +35,13 @@ export const projects = sqliteTable('projects', {
   bannerRejectBgColor: text('banner_reject_bg_color').default('#6b7280'),
   bannerRejectTextColor: text('banner_reject_text_color').default('#ffffff'),
   
+  // Configurazione iconcina persistente
+  floatingIconEnabled: integer('floating_icon_enabled', { mode: 'boolean' }).default(true),
+  floatingIconPosition: text('floating_icon_position').default('bottom-right'), // 'bottom-right', 'bottom-left', 'top-right', 'top-left'
+  floatingIconText: text('floating_icon_text').default('🍪'),
+  floatingIconBgColor: text('floating_icon_bg_color').default('#4f46e5'),
+  floatingIconTextColor: text('floating_icon_text_color').default('#ffffff'),
+  
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
 });

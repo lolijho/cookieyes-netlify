@@ -57,6 +57,13 @@ export async function GET(
             analytics: true,
             marketing: true,
             preferences: true
+          },
+          floatingIcon: {
+            enabled: true,
+            position: 'bottom-right',
+            text: '🍪',
+            backgroundColor: '#4f46e5',
+            textColor: '#ffffff'
           }
         }
       };
@@ -341,11 +348,16 @@ function generateCookieBannerScript(project: any): string {
       }).catch(err => console.warn('Errore invio consensi:', err));
     },
     
-    // Nasconde il banner
+    // Nasconde il banner e mostra l'iconcina persistente
     hideBanner: function() {
       const banner = document.getElementById('cookie-banner');
       if (banner) {
         banner.style.display = 'none';
+      }
+      
+      // Mostra l'iconcina persistente se abilitata
+      if (PROJECT_CONFIG.floatingIcon.enabled) {
+        FloatingIcon.show();
       }
     }
   };
@@ -512,6 +524,23 @@ function generateCookieBannerScript(project: any): string {
       \`;
     },
     
+    // Mostra solo il pannello impostazioni (per iconcina persistente)
+    showSettingsOnly: function() {
+      const banner = this.createBanner();
+      banner.querySelector('.cookie-banner-content').style.display = 'none';
+      banner.querySelector('#cookie-settings-panel').style.display = 'block';
+      banner.querySelector('#cookie-settings-panel').style.maxHeight = '800px';
+      banner.querySelector('#cookie-settings-panel').style.opacity = '1';
+      
+      document.body.appendChild(banner);
+      
+      // Animazione di entrata
+      setTimeout(() => {
+        banner.style.transform = 'translateY(0)';
+        banner.style.opacity = '1';
+      }, 100);
+    },
+    
     // Aggiunge event listeners
     attachEventListeners: function(banner) {
       // Accetta tutti
@@ -600,6 +629,90 @@ function generateCookieBannerScript(project: any): string {
     }
   };
   
+  // === ICONCINA PERSISTENTE ===
+  const FloatingIcon = {
+    // Mostra l'iconcina persistente
+    show: function() {
+      // Rimuove l'iconcina esistente se presente
+      const existingIcon = document.getElementById('cookie-floating-icon');
+      if (existingIcon) {
+        existingIcon.remove();
+      }
+      
+      const icon = this.createIcon();
+      document.body.appendChild(icon);
+      
+      // Animazione di entrata
+      setTimeout(() => {
+        icon.style.transform = 'translateY(0) scale(1)';
+        icon.style.opacity = '1';
+      }, 100);
+    },
+    
+    // Crea l'elemento iconcina
+    createIcon: function() {
+      const icon = document.createElement('div');
+      icon.id = 'cookie-floating-icon';
+      icon.innerHTML = \`
+        <div class="floating-icon-content">
+          <span class="floating-icon-text">\${PROJECT_CONFIG.floatingIcon.text}</span>
+          <span class="floating-icon-tooltip">Gestisci Cookie</span>
+        </div>
+      \`;
+      icon.style.cssText = this.getIconCSS();
+      
+      // Event listener per aprire le impostazioni
+      icon.addEventListener('click', () => {
+        this.openSettings();
+      });
+      
+      return icon;
+    },
+    
+    // Apre le impostazioni cookie
+    openSettings: function() {
+      // Rimuove l'iconcina
+      const icon = document.getElementById('cookie-floating-icon');
+      if (icon) {
+        icon.remove();
+      }
+      
+      // Mostra il banner con le impostazioni aperte
+      BannerUI.showSettingsOnly();
+    },
+    
+    // CSS per l'iconcina
+    getIconCSS: function() {
+      const config = PROJECT_CONFIG.floatingIcon;
+      const positions = {
+        'bottom-right': 'bottom: 20px; right: 20px;',
+        'bottom-left': 'bottom: 20px; left: 20px;',
+        'top-right': 'top: 20px; right: 20px;',
+        'top-left': 'top: 20px; left: 20px;'
+      };
+      
+      return \`
+        position: fixed;
+        \${positions[config.position] || positions['bottom-right']}
+        z-index: 9999;
+        background: \${config.backgroundColor};
+        color: \${config.textColor};
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+        opacity: 0;
+        transform: translateY(20px) scale(0.8);
+      \`;
+    }
+  };
+  
   // === INIZIALIZZAZIONE ===
   
   // Aspetta che il DOM sia pronto
@@ -610,18 +723,26 @@ function generateCookieBannerScript(project: any): string {
   }
   
   function init() {
-    // Mostra il banner se necessario
-    BannerUI.show();
-    
-    // Applica consensi esistenti se presenti
+    // Controlla se il consenso è già stato dato
     const existingConsent = ConsentManager.getConsent();
+    
     if (existingConsent) {
+      // Se il consenso esiste, applica i consensi e mostra l'iconcina
       ConsentManager.applyConsents(existingConsent);
+      
+      // Mostra l'iconcina persistente se abilitata
+      if (PROJECT_CONFIG.floatingIcon.enabled) {
+        FloatingIcon.show();
+      }
+    } else {
+      // Se non c'è consenso, mostra il banner
+      BannerUI.show();
     }
     
     // API globale per gestione manuale
     window.CookieConsent = {
       show: BannerUI.show,
+      showIcon: FloatingIcon.show,
       getConsent: ConsentManager.getConsent,
       updateConsent: ConsentManager.saveConsent,
       scanCookies: CookieScanner.scanCookies
@@ -920,6 +1041,92 @@ function generateCookieBannerScript(project: any): string {
       #cookie-banner .cookie-btn {
         width: 100%;
         margin: 5px 0;
+      }
+    }
+    
+    /* === STILI ICONCINA PERSISTENTE === */
+    
+    #cookie-floating-icon {
+      position: fixed;
+      z-index: 9999;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    }
+    
+    #cookie-floating-icon .floating-icon-content {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+    
+    #cookie-floating-icon .floating-icon-text {
+      font-size: 20px;
+      font-weight: bold;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    #cookie-floating-icon .floating-icon-tooltip {
+      position: absolute;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+    
+    #cookie-floating-icon .floating-icon-tooltip:before {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: rgba(0,0,0,0.8);
+    }
+    
+    #cookie-floating-icon:hover {
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    }
+    
+    #cookie-floating-icon:hover .floating-icon-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    #cookie-floating-icon:active {
+      transform: translateY(0) scale(0.95);
+    }
+    
+    /* Responsive per iconcina */
+    @media (max-width: 768px) {
+      #cookie-floating-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 18px;
+      }
+      
+      #cookie-floating-icon .floating-icon-text {
+        font-size: 18px;
+      }
+      
+      #cookie-floating-icon .floating-icon-tooltip {
+        bottom: 60px;
+        font-size: 11px;
       }
     }
   \`;
