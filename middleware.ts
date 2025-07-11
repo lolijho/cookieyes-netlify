@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Route pubbliche che non richiedono autenticazione
-  const publicRoutes = ['/login', '/register', '/api/auth/', '/api/script/', '/api/consents']
+  const publicRoutes = ['/login', '/register', '/api/auth/', '/api/script/', '/api/consents', '/api/init-turso']
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
   
   // Bypass per le API script e consensi (devono essere pubbliche)
