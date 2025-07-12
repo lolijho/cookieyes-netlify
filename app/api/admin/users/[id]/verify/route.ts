@@ -60,29 +60,42 @@ export async function POST(
 
     const now = new Date().toISOString();
 
-    // Verifica l'utente
-    await db.execute({
-      sql: 'UPDATE users SET email_verified = 1, verified_at = ?, updated_at = ? WHERE id = ?',
-      args: [now, now, userId]
-    });
+    try {
+      // Prova prima con verified_at
+      await db.execute({
+        sql: 'UPDATE users SET email_verified = 1, verified_at = ?, updated_at = ? WHERE id = ?',
+        args: [now, now, userId]
+      });
+    } catch (verifiedAtError) {
+      console.log('Campo verified_at non esiste, uso solo email_verified:', verifiedAtError);
+      // Fallback senza verified_at
+      await db.execute({
+        sql: 'UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ?',
+        args: [now, userId]
+      });
+    }
 
-    // Log audit
-    await db.execute({
-      sql: `
-        INSERT INTO audit_logs (user_id, action, resource, resource_id, details, ip_address, user_agent, created_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      args: [
-        adminId,
-        'verify_user',
-        'users',
-        userId,
-        JSON.stringify({ email: user.email, verified_by: 'admin' }),
-        request.headers.get('x-forwarded-for') || 'unknown',
-        request.headers.get('user-agent') || 'unknown',
-        now
-      ]
-    });
+    // Prova a inserire il log audit (opzionale)
+    try {
+      await db.execute({
+        sql: `
+          INSERT INTO audit_logs (user_id, action, resource, resource_id, details, ip_address, user_agent, created_at) 
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        args: [
+          adminId,
+          'verify_user',
+          'users',
+          userId,
+          JSON.stringify({ email: user.email, verified_by: 'admin' }),
+          request.headers.get('x-forwarded-for') || 'unknown',
+          request.headers.get('user-agent') || 'unknown',
+          now
+        ]
+      });
+    } catch (auditError) {
+      console.log('Tabella audit_logs non disponibile, continuo senza logging:', auditError);
+    }
 
     console.log(`✅ Utente ${user.email} verificato dall'admin ${adminId}`);
 
@@ -159,42 +172,63 @@ export async function PATCH(
     const newVerified = !currentVerified;
     const now = new Date().toISOString();
 
-    // Toggle stato verifica
-    await db.execute({
-      sql: `
-        UPDATE users 
-        SET email_verified = ?, verified_at = ?, updated_at = ? 
-        WHERE id = ?
-      `,
-      args: [
-        newVerified ? 1 : 0,
-        newVerified ? now : null,
-        now,
-        userId
-      ]
-    });
+    try {
+      // Prova prima con verified_at
+      await db.execute({
+        sql: `
+          UPDATE users 
+          SET email_verified = ?, verified_at = ?, updated_at = ? 
+          WHERE id = ?
+        `,
+        args: [
+          newVerified ? 1 : 0,
+          newVerified ? now : null,
+          now,
+          userId
+        ]
+      });
+    } catch (verifiedAtError) {
+      console.log('Campo verified_at non esiste, uso solo email_verified:', verifiedAtError);
+      // Fallback senza verified_at
+      await db.execute({
+        sql: `
+          UPDATE users 
+          SET email_verified = ?, updated_at = ? 
+          WHERE id = ?
+        `,
+        args: [
+          newVerified ? 1 : 0,
+          now,
+          userId
+        ]
+      });
+    }
 
-    // Log audit
-    await db.execute({
-      sql: `
-        INSERT INTO audit_logs (user_id, action, resource, resource_id, details, ip_address, user_agent, created_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      args: [
-        adminId,
-        newVerified ? 'verify_user' : 'unverify_user',
-        'users',
-        userId,
-        JSON.stringify({ 
-          email: user.email, 
-          action: newVerified ? 'verified' : 'unverified',
-          by: 'admin' 
-        }),
-        request.headers.get('x-forwarded-for') || 'unknown',
-        request.headers.get('user-agent') || 'unknown',
-        now
-      ]
-    });
+    // Prova a inserire il log audit (opzionale)
+    try {
+      await db.execute({
+        sql: `
+          INSERT INTO audit_logs (user_id, action, resource, resource_id, details, ip_address, user_agent, created_at) 
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        args: [
+          adminId,
+          newVerified ? 'verify_user' : 'unverify_user',
+          'users',
+          userId,
+          JSON.stringify({ 
+            email: user.email, 
+            action: newVerified ? 'verified' : 'unverified',
+            by: 'admin' 
+          }),
+          request.headers.get('x-forwarded-for') || 'unknown',
+          request.headers.get('user-agent') || 'unknown',
+          now
+        ]
+      });
+    } catch (auditError) {
+      console.log('Tabella audit_logs non disponibile, continuo senza logging:', auditError);
+    }
 
     console.log(`${newVerified ? '✅' : '❌'} Utente ${user.email} ${newVerified ? 'verificato' : 'non verificato'} dall'admin`);
 
