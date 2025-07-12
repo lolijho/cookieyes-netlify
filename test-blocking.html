@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔒 Test Blocco Preventivo Cookie - Sistema Cookie</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .test-section {
+            background: #fef2f2;
+            margin-bottom: 30px;
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid #fecaca;
+        }
+        
+        .test-section h2 {
+            color: #dc2626;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+        
+        .primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+        
+        .console-output {
+            background: #1e293b;
+            color: #64748b;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 20px 0;
+            border: 1px solid #334155;
+        }
+        
+        .blocked-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .blocked-yes {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .blocked-no {
+            background: #10b981;
+            color: white;
+        }
+        
+        .test-result {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .test-result.success {
+            background: #f0fdf4;
+            border-left-color: #10b981;
+        }
+        
+        .test-result.error {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+        }
+        
+        .script-example {
+            background: #0f172a;
+            color: #64748b;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        
+        .warning-box {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .warning-box h3 {
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+        
+        .warning-box p {
+            color: #78350f;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 Test Blocco Preventivo Cookie</h1>
+            <p>Verifica che il sistema blocchi effettivamente cookie e script non tecnici</p>
+        </div>
+        
+        <div class="content">
+            <div class="warning-box">
+                <h3>⚠️ Attenzione - Test di Sicurezza</h3>
+                <p>Questa pagina testa il sistema di blocco preventivo. Gli script dovrebbero essere bloccati PRIMA del consenso e attivati SOLO dopo aver dato il consenso per le categorie appropriate.</p>
+            </div>
+            
+            <!-- Test Cookie Tecnici vs Non Tecnici -->
+            <div class="test-section">
+                <h2>🍪 Test Cookie Tecnici vs Non Tecnici</h2>
+                <p>Verifica che solo i cookie necessari vengano impostati prima del consenso</p>
+                
+                <div class="button-group">
+                    <button onclick="testNecessaryCookies()" class="success">
+                        ✅ Test Cookie Necessari
+                    </button>
+                    <button onclick="testAnalyticsCookies()" class="danger">
+                        📊 Test Cookie Analytics (DEVE essere bloccato)
+                    </button>
+                    <button onclick="testMarketingCookies()" class="danger">
+                        📢 Test Cookie Marketing (DEVE essere bloccato)
+                    </button>
+                    <button onclick="clearAllTestCookies()" class="warning">
+                        🧹 Pulisci Cookie Test
+                    </button>
+                </div>
+                
+                <div id="cookie-test-results" class="console-output">
+                    Clicca sui pulsanti per testare il blocco dei cookie...
+                </div>
+            </div>
+            
+            <!-- Test Script Bloccati -->
+            <div class="test-section">
+                <h2>📜 Test Script con data-cookie-category</h2>
+                <p>Verifica che gli script vengano bloccati in base alla categoria</p>
+                
+                <div class="button-group">
+                    <button onclick="addTestScripts()" class="primary">
+                        ➕ Aggiungi Script Test
+                    </button>
+                    <button onclick="scanScriptStatus()" class="warning">
+                        🔍 Verifica Stato Script
+                    </button>
+                    <button onclick="removeTestScripts()" class="danger">
+                        🗑️ Rimuovi Script Test
+                    </button>
+                </div>
+                
+                <div class="script-example">
+&lt;!-- Esempi di script che verranno testati --&gt;
+&lt;script type="text/plain" data-cookie-category="analytics"&gt;
+console.log('ANALYTICS SCRIPT ESEGUITO');
+window.testAnalyticsExecuted = true;
+&lt;/script&gt;
+
+&lt;script type="text/plain" data-cookie-category="marketing"&gt;
+console.log('MARKETING SCRIPT ESEGUITO');
+window.testMarketingExecuted = true;
+&lt;/script&gt;
+
+&lt;script type="text/plain" data-cookie-category="preferences"&gt;
+console.log('PREFERENCES SCRIPT ESEGUITO');
+window.testPreferencesExecuted = true;
+&lt;/script&gt;
+                </div>
+                
+                <div id="script-test-results" class="console-output">
+                    Risultati test script appariranno qui...
+                </div>
+            </div>
+            
+            <!-- Test Tracking Pixels -->
+            <div class="test-section">
+                <h2>📸 Test Pixel di Tracking</h2>
+                <p>Verifica che i pixel di tracking vengano bloccati</p>
+                
+                <div class="button-group">
+                    <button onclick="testTrackingPixels()" class="danger">
+                        📸 Test Pixel Tracking (DEVE essere bloccato)
+                    </button>
+                    <button onclick="checkPixelStatus()" class="warning">
+                        🔍 Verifica Pixel
+                    </button>
+                </div>
+                
+                <div id="pixel-test-results" class="console-output">
+                    Risultati test pixel appariranno qui...
+                </div>
+            </div>
+            
+            <!-- Controllo Sistema Cookie -->
+            <div class="test-section">
+                <h2>🎮 Controllo Sistema Cookie</h2>
+                <p>Carica il sistema cookie e testa il blocco in tempo reale</p>
+                
+                <div class="button-group">
+                    <button onclick="loadCookieSystem()" class="primary">
+                        🚀 Carica Sistema Cookie
+                    </button>
+                    <button onclick="checkConsentStatus()" class="warning">
+                        📊 Verifica Consensi
+                    </button>
+                    <button onclick="resetSystem()" class="danger">
+                        🔄 Reset Sistema
+                    </button>
+                </div>
+                
+                <div id="system-status" class="console-output">
+                    Sistema non caricato. Clicca "Carica Sistema Cookie" per iniziare...
+                </div>
+            </div>
+            
+            <!-- Risultati Finali -->
+            <div class="test-section">
+                <h2>📋 Risultati Test Completo</h2>
+                <p>Riepilogo di tutti i test di blocco</p>
+                
+                <div class="button-group">
+                    <button onclick="runFullBlockingTest()" class="primary">
+                        🧪 Test Completo Blocco
+                    </button>
+                    <button onclick="generateTestReport()" class="success">
+                        📊 Genera Report
+                    </button>
+                </div>
+                
+                <div id="final-results" class="console-output">
+                    Risultati finali appariranno qui...
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Script di test nascosti -->
+    <script type="text/plain" data-cookie-category="analytics" id="hidden-analytics">
+        console.log('🚫 ERRORE: Analytics script eseguito senza consenso!');
+        window.analyticsTestFailed = true;
+    </script>
+    
+    <script type="text/plain" data-cookie-category="marketing" id="hidden-marketing">
+        console.log('🚫 ERRORE: Marketing script eseguito senza consenso!');
+        window.marketingTestFailed = true;
+    </script>
+    
+    <script>
+        let testResults = {
+            necessaryCookies: null,
+            analyticsCookies: null,
+            marketingCookies: null,
+            scriptsBlocked: null,
+            pixelsBlocked: null,
+            systemLoaded: false
+        };
+        
+        // Test cookie necessari (dovrebbero passare)
+        function testNecessaryCookies() {
+            const log = document.getElementById('cookie-test-results');
+            log.textContent += '\n🔍 Test Cookie Necessari...\n';
+            
+            try {
+                // Questi dovrebbero essere permessi
+                document.cookie = 'test_session=session123; path=/';
+                document.cookie = 'csrf_token=csrf456; path=/';
+                document.cookie = 'auth_token=auth789; path=/';
+                
+                // Verifica che siano stati impostati
+                const cookies = document.cookie;
+                const hasSession = cookies.includes('test_session=session123');
+                const hasCsrf = cookies.includes('csrf_token=csrf456');
+                const hasAuth = cookies.includes('auth_token=auth789');
+                
+                if (hasSession && hasCsrf && hasAuth) {
+                    log.textContent += '✅ SUCCESSO: Cookie necessari impostati correttamente\n';
+                    testResults.necessaryCookies = true;
+                } else {
+                    log.textContent += '❌ ERRORE: Alcuni cookie necessari non sono stati impostati\n';
+                    testResults.necessaryCookies = false;
+                }
+                
+            } catch (error) {
+                log.textContent += '❌ ERRORE: ' + error.message + '\n';
+                testResults.necessaryCookies = false;
+            }
+        }
+        
+        // Test cookie analytics (dovrebbero essere bloccati)
+        function testAnalyticsCookies() {
+            const log = document.getElementById('cookie-test-results');
+            log.textContent += '\n🔍 Test Cookie Analytics (dovrebbero essere bloccati)...\n';
+            
+            const cookiesBefore = document.cookie;
+            
+            try {
+                // Questi dovrebbero essere bloccati
+                document.cookie = '_ga=GA1.2.123456789; path=/';
+                document.cookie = '_gid=GA1.2.987654321; path=/';
+                document.cookie = 'google_analytics=test; path=/';
+                
+                // Verifica che NON siano stati impostati
+                const cookiesAfter = document.cookie;
+                const hasGa = cookiesAfter.includes('_ga=GA1.2.123456789');
+                const hasGid = cookiesAfter.includes('_gid=GA1.2.987654321');
+                const hasAnalytics = cookiesAfter.includes('google_analytics=test');
+                
+                if (!hasGa && !hasGid && !hasAnalytics) {
+                    log.textContent += '✅ SUCCESSO: Cookie analytics bloccati correttamente\n';
+                    testResults.analyticsCookies = true;
+                } else {
+                    log.textContent += '❌ ERRORE: Cookie analytics NON bloccati!\n';
+                    log.textContent += `GA: ${hasGa}, GID: ${hasGid}, Analytics: ${hasAnalytics}\n`;
+                    testResults.analyticsCookies = false;
+                }
+                
+            } catch (error) {
+                log.textContent += '✅ SUCCESSO: Cookie analytics bloccati (errore lanciato): ' + error.message + '\n';
+                testResults.analyticsCookies = true;
+            }
+        }
+        
+        // Test cookie marketing (dovrebbero essere bloccati)
+        function testMarketingCookies() {
+            const log = document.getElementById('cookie-test-results');
+            log.textContent += '\n🔍 Test Cookie Marketing (dovrebbero essere bloccati)...\n';
+            
+            try {
+                // Questi dovrebbero essere bloccati
+                document.cookie = '_fbp=fb.1.123456789; path=/';
+                document.cookie = 'facebook_pixel=test; path=/';
+                document.cookie = 'marketing_consent=granted; path=/';
+                
+                // Verifica che NON siano stati impostati
+                const cookies = document.cookie;
+                const hasFbp = cookies.includes('_fbp=fb.1.123456789');
+                const hasFacebookPixel = cookies.includes('facebook_pixel=test');
+                const hasMarketing = cookies.includes('marketing_consent=granted');
+                
+                if (!hasFbp && !hasFacebookPixel && !hasMarketing) {
+                    log.textContent += '✅ SUCCESSO: Cookie marketing bloccati correttamente\n';
+                    testResults.marketingCookies = true;
+                } else {
+                    log.textContent += '❌ ERRORE: Cookie marketing NON bloccati!\n';
+                    log.textContent += `FBP: ${hasFbp}, FB Pixel: ${hasFacebookPixel}, Marketing: ${hasMarketing}\n`;
+                    testResults.marketingCookies = false;
+                }
+                
+            } catch (error) {
+                log.textContent += '✅ SUCCESSO: Cookie marketing bloccati (errore lanciato): ' + error.message + '\n';
+                testResults.marketingCookies = true;
+            }
+        }
+        
+        // Pulisci cookie di test
+        function clearAllTestCookies() {
+            const log = document.getElementById('cookie-test-results');
+            
+            // Lista cookie di test da rimuovere
+            const testCookies = [
+                'test_session', 'csrf_token', 'auth_token',
+                '_ga', '_gid', 'google_analytics',
+                '_fbp', 'facebook_pixel', 'marketing_consent'
+            ];
+            
+            testCookies.forEach(cookieName => {
+                document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+            });
+            
+            log.textContent += '\n🧹 Cookie di test rimossi\n';
+        }
+        
+        // Aggiungi script di test
+        function addTestScripts() {
+            const log = document.getElementById('script-test-results');
+            log.textContent += '\n➕ Aggiungendo script di test...\n';
+            
+            // Rimuovi script esistenti
+            removeTestScripts();
+            
+            // Analytics script
+            const analyticsScript = document.createElement('script');
+            analyticsScript.type = 'text/plain';
+            analyticsScript.dataset.cookieCategory = 'analytics';
+            analyticsScript.id = 'test-analytics-script';
+            analyticsScript.textContent = `
+                console.log('🚫 ERRORE: Analytics script eseguito!');
+                window.testAnalyticsExecuted = true;
+                document.getElementById('script-test-results').textContent += '❌ ANALYTICS SCRIPT ESEGUITO SENZA CONSENSO!\\n';
+            `;
+            document.head.appendChild(analyticsScript);
+            
+            // Marketing script
+            const marketingScript = document.createElement('script');
+            marketingScript.type = 'text/plain';
+            marketingScript.dataset.cookieCategory = 'marketing';
+            marketingScript.id = 'test-marketing-script';
+            marketingScript.textContent = `
+                console.log('🚫 ERRORE: Marketing script eseguito!');
+                window.testMarketingExecuted = true;
+                document.getElementById('script-test-results').textContent += '❌ MARKETING SCRIPT ESEGUITO SENZA CONSENSO!\\n';
+            `;
+            document.head.appendChild(marketingScript);
+            
+            // Preferences script
+            const preferencesScript = document.createElement('script');
+            preferencesScript.type = 'text/plain';
+            preferencesScript.dataset.cookieCategory = 'preferences';
+            preferencesScript.id = 'test-preferences-script';
+            preferencesScript.textContent = `
+                console.log('🚫 ERRORE: Preferences script eseguito!');
+                window.testPreferencesExecuted = true;
+                document.getElementById('script-test-results').textContent += '❌ PREFERENCES SCRIPT ESEGUITO SENZA CONSENSO!\\n';
+            `;
+            document.head.appendChild(preferencesScript);
+            
+            log.textContent += '✅ Script di test aggiunti\n';
+            
+            // Aspetta un po' e poi verifica
+            setTimeout(scanScriptStatus, 1000);
+        }
+        
+        // Verifica stato script
+        function scanScriptStatus() {
+            const log = document.getElementById('script-test-results');
+            log.textContent += '\n🔍 Scansionando stato script...\n';
+            
+            const scripts = document.querySelectorAll('script[data-cookie-category]');
+            let blockedCount = 0;
+            let executedCount = 0;
+            
+            scripts.forEach(script => {
+                const category = script.dataset.cookieCategory;
+                const isBlocked = script.dataset.blocked === 'true' || script.type === 'text/plain';
+                
+                if (isBlocked) {
+                    log.textContent += `✅ Script ${category}: BLOCCATO\n`;
+                    blockedCount++;
+                } else {
+                    log.textContent += `❌ Script ${category}: NON BLOCCATO\n`;
+                    executedCount++;
+                }
+            });
+            
+            // Verifica variabili globali
+            if (window.testAnalyticsExecuted) {
+                log.textContent += '❌ ERRORE: Analytics script è stato eseguito!\n';
+                executedCount++;
+            }
+            if (window.testMarketingExecuted) {
+                log.textContent += '❌ ERRORE: Marketing script è stato eseguito!\n';
+                executedCount++;
+            }
+            if (window.testPreferencesExecuted) {
+                log.textContent += '❌ ERRORE: Preferences script è stato eseguito!\n';
+                executedCount++;
+            }
+            
+            if (executedCount === 0) {
+                log.textContent += `\n✅ SUCCESSO: Tutti i ${blockedCount} script sono bloccati\n`;
+                testResults.scriptsBlocked = true;
+            } else {
+                log.textContent += `\n❌ ERRORE: ${executedCount} script eseguiti, ${blockedCount} bloccati\n`;
+                testResults.scriptsBlocked = false;
+            }
+        }
+        
+        // Rimuovi script di test
+        function removeTestScripts() {
+            ['test-analytics-script', 'test-marketing-script', 'test-preferences-script'].forEach(id => {
+                const script = document.getElementById(id);
+                if (script) script.remove();
+            });
+            
+            // Reset variabili
+            window.testAnalyticsExecuted = false;
+            window.testMarketingExecuted = false;
+            window.testPreferencesExecuted = false;
+        }
+        
+        // Test pixel tracking
+        function testTrackingPixels() {
+            const log = document.getElementById('pixel-test-results');
+            log.textContent += '\n📸 Test Pixel Tracking...\n';
+            
+            try {
+                // Crea pixel Facebook
+                const fbPixel = document.createElement('img');
+                fbPixel.src = 'https://www.facebook.com/tr?id=123456789&ev=PageView';
+                fbPixel.style.display = 'none';
+                fbPixel.id = 'test-fb-pixel';
+                
+                // Crea pixel Google
+                const googlePixel = document.createElement('img');
+                googlePixel.src = 'https://googleadservices.com/pagead/conversion/123456789/?random=123';
+                googlePixel.style.display = 'none';
+                googlePixel.id = 'test-google-pixel';
+                
+                document.body.appendChild(fbPixel);
+                document.body.appendChild(googlePixel);
+                
+                log.textContent += '📸 Pixel aggiunti, verificando blocco...\n';
+                
+                setTimeout(checkPixelStatus, 2000);
+                
+            } catch (error) {
+                log.textContent += '✅ SUCCESSO: Pixel bloccati (errore): ' + error.message + '\n';
+                testResults.pixelsBlocked = true;
+            }
+        }
+        
+        // Verifica stato pixel
+        function checkPixelStatus() {
+            const log = document.getElementById('pixel-test-results');
+            
+            const fbPixel = document.getElementById('test-fb-pixel');
+            const googlePixel = document.getElementById('test-google-pixel');
+            
+            let blockedCount = 0;
+            
+            if (fbPixel) {
+                const isBlocked = fbPixel.dataset.blocked === 'true' || 
+                               fbPixel.src.includes('data:image/gif;base64');
+                if (isBlocked) {
+                    log.textContent += '✅ Facebook Pixel: BLOCCATO\n';
+                    blockedCount++;
+                } else {
+                    log.textContent += '❌ Facebook Pixel: NON BLOCCATO\n';
+                }
+            }
+            
+            if (googlePixel) {
+                const isBlocked = googlePixel.dataset.blocked === 'true' || 
+                                googlePixel.src.includes('data:image/gif;base64');
+                if (isBlocked) {
+                    log.textContent += '✅ Google Pixel: BLOCCATO\n';
+                    blockedCount++;
+                } else {
+                    log.textContent += '❌ Google Pixel: NON BLOCCATO\n';
+                }
+            }
+            
+            testResults.pixelsBlocked = blockedCount > 0;
+        }
+        
+        // Carica sistema cookie
+        function loadCookieSystem() {
+            const log = document.getElementById('system-status');
+            log.textContent += '\n🚀 Caricando sistema cookie...\n';
+            
+            const script = document.createElement('script');
+            script.src = '/api/script/project_default';
+            script.async = true;
+            script.onload = function() {
+                log.textContent += '✅ Sistema cookie caricato\n';
+                testResults.systemLoaded = true;
+                
+                // Aspetta l'inizializzazione
+                setTimeout(() => {
+                    if (window.CookieConsent) {
+                        log.textContent += '✅ API CookieConsent disponibile\n';
+                        log.textContent += '📊 Funzioni disponibili: ' + Object.keys(window.CookieConsent).join(', ') + '\n';
+                    } else {
+                        log.textContent += '❌ API CookieConsent non disponibile\n';
+                    }
+                }, 2000);
+            };
+            script.onerror = function() {
+                log.textContent += '❌ Errore caricamento sistema cookie\n';
+                testResults.systemLoaded = false;
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Verifica consensi
+        function checkConsentStatus() {
+            const log = document.getElementById('system-status');
+            
+            if (!window.CookieConsent) {
+                log.textContent += '\n❌ Sistema cookie non caricato\n';
+                return;
+            }
+            
+            const consent = window.CookieConsent.getConsent();
+            const hasConsent = window.CookieConsent.hasConsent();
+            
+            log.textContent += '\n📊 Stato consensi:\n';
+            log.textContent += `- Ha consenso: ${hasConsent}\n`;
+            log.textContent += `- Dettagli: ${JSON.stringify(consent, null, 2)}\n`;
+        }
+        
+        // Reset sistema
+        function resetSystem() {
+            const log = document.getElementById('system-status');
+            
+            // Rimuovi consensi
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('cookie_consent_')) {
+                    localStorage.removeItem(key);
+                }
+            });
+            
+            // Rimuovi banner se presente
+            const banner = document.getElementById('cookie-banner');
+            if (banner) banner.remove();
+            
+            // Reset risultati
+            testResults = {
+                necessaryCookies: null,
+                analyticsCookies: null,
+                marketingCookies: null,
+                scriptsBlocked: null,
+                pixelsBlocked: null,
+                systemLoaded: false
+            };
+            
+            log.textContent += '\n🔄 Sistema resettato\n';
+        }
+        
+        // Test completo
+        function runFullBlockingTest() {
+            const log = document.getElementById('final-results');
+            log.textContent = '🧪 Avvio test completo blocco...\n\n';
+            
+            // Reset tutto
+            resetSystem();
+            clearAllTestCookies();
+            removeTestScripts();
+            
+            // Sequenza di test
+            setTimeout(() => {
+                log.textContent += '📋 Fase 1: Test Cookie\n';
+                testNecessaryCookies();
+                testAnalyticsCookies();
+                testMarketingCookies();
+            }, 1000);
+            
+            setTimeout(() => {
+                log.textContent += '\n📋 Fase 2: Test Script\n';
+                addTestScripts();
+            }, 3000);
+            
+            setTimeout(() => {
+                log.textContent += '\n📋 Fase 3: Test Pixel\n';
+                testTrackingPixels();
+            }, 6000);
+            
+            setTimeout(() => {
+                log.textContent += '\n📋 Fase 4: Caricamento Sistema\n';
+                loadCookieSystem();
+            }, 9000);
+            
+            setTimeout(() => {
+                generateTestReport();
+            }, 15000);
+        }
+        
+        // Genera report
+        function generateTestReport() {
+            const log = document.getElementById('final-results');
+            
+            log.textContent += '\n\n🏁 REPORT FINALE TEST BLOCCO\n';
+            log.textContent += '================================\n\n';
+            
+            const tests = [
+                { name: 'Cookie Necessari', result: testResults.necessaryCookies, expected: true },
+                { name: 'Blocco Cookie Analytics', result: testResults.analyticsCookies, expected: true },
+                { name: 'Blocco Cookie Marketing', result: testResults.marketingCookies, expected: true },
+                { name: 'Blocco Script', result: testResults.scriptsBlocked, expected: true },
+                { name: 'Blocco Pixel', result: testResults.pixelsBlocked, expected: true },
+                { name: 'Sistema Caricato', result: testResults.systemLoaded, expected: true }
+            ];
+            
+            let passedTests = 0;
+            let totalTests = tests.length;
+            
+            tests.forEach(test => {
+                const status = test.result === test.expected ? '✅ PASS' : '❌ FAIL';
+                log.textContent += `${status} ${test.name}\n`;
+                if (test.result === test.expected) passedTests++;
+            });
+            
+            log.textContent += `\n📊 Risultato: ${passedTests}/${totalTests} test superati\n`;
+            
+            if (passedTests === totalTests) {
+                log.textContent += '\n🎉 SUCCESSO: Sistema di blocco funzionante!\n';
+            } else {
+                log.textContent += '\n⚠️ ATTENZIONE: Alcuni test non sono riusciti\n';
+            }
+            
+            // Raccomandazioni
+            log.textContent += '\n💡 Raccomandazioni:\n';
+            log.textContent += '- Verifica che il sistema cookie sia caricato PRIMA degli script di tracking\n';
+            log.textContent += '- Assicurati che gli script abbiano data-cookie-category corretto\n';
+            log.textContent += '- Controlla che i cookie non tecnici vengano intercettati\n';
+            log.textContent += '- Testa con esempi reali di Google Analytics e Facebook Pixel\n';
+        }
+        
+        // Inizializzazione automatica
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔒 Pagina test blocco caricata');
+            console.log('💡 Inizia con "Test Completo Blocco" per verificare tutto');
+        });
+    </script>
+</body>
+</html> 

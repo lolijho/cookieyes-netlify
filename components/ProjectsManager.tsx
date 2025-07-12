@@ -11,6 +11,8 @@ import { TursoBackup } from '@/lib/tursoBackup';
 
 interface ProjectsManagerProps {
   userId: string;
+  maxProjects?: number;
+  currentProjects?: number;
 }
 
 interface BannerPreview {
@@ -26,7 +28,7 @@ interface BannerPreview {
   };
 }
 
-export function ProjectsManager({ userId }: ProjectsManagerProps) {
+export function ProjectsManager({ userId, maxProjects, currentProjects }: ProjectsManagerProps) {
   const [projects, setProjects] = useState<ProjectLocal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +87,12 @@ export function ProjectsManager({ userId }: ProjectsManagerProps) {
     
     if (!formData.name || !formData.domain) {
       setError('Nome e dominio sono obbligatori');
+      return;
+    }
+
+    // Controllo limiti piano
+    if (maxProjects && projects.length >= maxProjects) {
+      setError(`Limite piano raggiunto: massimo ${maxProjects} progetti consentiti`);
       return;
     }
 
@@ -583,12 +591,26 @@ export function ProjectsManager({ userId }: ProjectsManagerProps) {
           <p className="text-gray-600">Gestiti localmente + backup automatico Turso</p>
         </div>
         <div className="flex space-x-2">
-          <Button
-            onClick={() => setShowCreateForm(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            + Nuovo Progetto
-          </Button>
+          {maxProjects && projects.length >= maxProjects ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-orange-600 bg-orange-50 px-3 py-2 rounded-lg">
+                Limite raggiunto: {projects.length}/{maxProjects} progetti
+              </span>
+              <Button
+                disabled
+                className="bg-gray-400 cursor-not-allowed"
+              >
+                + Nuovo Progetto
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={() => setShowCreateForm(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              + Nuovo Progetto {maxProjects ? `(${projects.length}/${maxProjects})` : ''}
+            </Button>
+          )}
         </div>
       </div>
 
