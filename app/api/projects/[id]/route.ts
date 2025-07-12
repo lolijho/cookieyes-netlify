@@ -1,66 +1,70 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../../db';
+import { AuthManager } from '../../../../lib/auth';
 
-// GET - Recupera un progetto specifico
+// GET - Recupera dettagli di un progetto specifico
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const projectId = params.id;
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
+    console.log('GET /api/projects/[id] - Progetto ID:', projectId);
+    
+    // Verifica autenticazione
+    const user = await AuthManager.getAuthenticatedUser(request);
+    if (!user) {
       return NextResponse.json(
-        { message: 'User ID richiesto' },
-        { status: 400 }
+        { error: 'Accesso non autorizzato' },
+        { status: 401 }
       );
     }
 
-    // Recupera il progetto con le sue categorie
-    const projectResult = await db.execute({
-      sql: `
-        SELECT p.*, 
-               COUNT(c.id) as total_consents,
-               COUNT(CASE WHEN c.created_at > datetime('now', '-7 days') THEN 1 END) as recent_consents
-        FROM projects p
-        LEFT JOIN consents c ON p.id = c.project_id
-        WHERE p.id = ? AND p.user_id = ?
-        GROUP BY p.id
-      `,
-      args: [projectId, userId]
+    // Recupera il progetto
+    const result = await db.execute({
+      sql: 'SELECT * FROM projects WHERE id = ? AND is_active = 1',
+      args: [projectId]
     });
 
-    if (projectResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       return NextResponse.json(
-        { message: 'Progetto non trovato' },
+        { error: 'Progetto non trovato' },
         { status: 404 }
       );
     }
 
-    // Recupera le categorie del progetto
-    const categoriesResult = await db.execute({
-      sql: 'SELECT * FROM cookie_categories WHERE project_id = ? ORDER BY created_at ASC',
-      args: [projectId]
-    });
+    const project = result.rows[0] as any;
 
-    // Recupera gli script di tracciamento
-    const scriptsResult = await db.execute({
-      sql: 'SELECT * FROM tracking_scripts WHERE project_id = ? ORDER BY created_at ASC',
-      args: [projectId]
-    });
+    // Verifica autorizzazione
+    if (!AuthManager.isAdmin(user) && project.user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Non hai il permesso di accedere a questo progetto' },
+        { status: 403 }
+      );
+    }
+
+    // Formatta e restituisce il progetto
+    const formattedProject = {
+      id: project.id,
+      name: project.name,
+      domain: project.domain,
+      language: project.language,
+      banner_config: project.banner_config ? JSON.parse(project.banner_config) : null,
+      is_active: Boolean(project.is_active),
+      created_at: project.created_at,
+      updated_at: project.updated_at,
+      user_id: project.user_id
+    };
 
     return NextResponse.json({
-      project: projectResult.rows[0],
-      categories: categoriesResult.rows,
-      scripts: scriptsResult.rows
+      success: true,
+      project: formattedProject
     });
 
   } catch (error) {
-    console.error('Errore nel recupero progetto:', error);
+    console.error('GET /api/projects/[id] - Errore:', error);
     return NextResponse.json(
-      { message: 'Errore interno del server' },
+      { error: 'Errore interno del server' },
       { status: 500 }
     );
   }
@@ -73,144 +77,77 @@ export async function PUT(
 ) {
   try {
     const projectId = params.id;
+    console.log('PUT /api/projects/[id] - Progetto ID:', projectId);
+    
+    // Verifica autenticazione
+    const user = await AuthManager.getAuthenticatedUser(request);
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Accesso non autorizzato' },
+        { status: 401 }
+      );
+    }
+
+    // Verifica che il progetto esista e l'utente abbia i permessi
+    const canAccess = await AuthManager.canAccessProject(user, projectId);
+    if (!canAccess) {
+      return NextResponse.json(
+        { error: 'Non hai il permesso di modificare questo progetto' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
-    const { 
-      userId,
-      name, 
-      domain, 
-      language,
-      bannerPosition,
-      bannerTitle,
-      bannerDescription,
-      bannerAcceptText,
-      bannerRejectText,
-      bannerCustomizeText,
-      bannerBgColor,
-      bannerTextColor,
-      bannerAcceptBgColor,
-      bannerAcceptTextColor,
-      bannerRejectBgColor,
-      bannerRejectTextColor
-    } = body;
+    const { name, domain, language, banner_config } = body;
 
-    if (!userId) {
-      return NextResponse.json(
-        { message: 'User ID richiesto' },
-        { status: 400 }
-      );
-    }
-
-    // Verifica che il progetto appartenga all'utente
-    const checkResult = await db.execute({
-      sql: 'SELECT id FROM projects WHERE id = ? AND user_id = ?',
-      args: [projectId, userId]
-    });
-
-    if (checkResult.rows.length === 0) {
-      return NextResponse.json(
-        { message: 'Progetto non trovato' },
-        { status: 404 }
-      );
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-
-    // Costruisci la query di aggiornamento dinamicamente
-    const updateFields = [];
-    const updateValues = [];
-
-    if (name !== undefined) {
-      updateFields.push('name = ?');
-      updateValues.push(name);
-    }
-    if (domain !== undefined) {
-      updateFields.push('domain = ?');
-      updateValues.push(domain);
-    }
-    if (language !== undefined) {
-      updateFields.push('language = ?');
-      updateValues.push(language);
-    }
-    if (bannerPosition !== undefined) {
-      updateFields.push('banner_position = ?');
-      updateValues.push(bannerPosition);
-    }
-    if (bannerTitle !== undefined) {
-      updateFields.push('banner_title = ?');
-      updateValues.push(bannerTitle);
-    }
-    if (bannerDescription !== undefined) {
-      updateFields.push('banner_description = ?');
-      updateValues.push(bannerDescription);
-    }
-    if (bannerAcceptText !== undefined) {
-      updateFields.push('banner_accept_text = ?');
-      updateValues.push(bannerAcceptText);
-    }
-    if (bannerRejectText !== undefined) {
-      updateFields.push('banner_reject_text = ?');
-      updateValues.push(bannerRejectText);
-    }
-    if (bannerCustomizeText !== undefined) {
-      updateFields.push('banner_customize_text = ?');
-      updateValues.push(bannerCustomizeText);
-    }
-    if (bannerBgColor !== undefined) {
-      updateFields.push('banner_bg_color = ?');
-      updateValues.push(bannerBgColor);
-    }
-    if (bannerTextColor !== undefined) {
-      updateFields.push('banner_text_color = ?');
-      updateValues.push(bannerTextColor);
-    }
-    if (bannerAcceptBgColor !== undefined) {
-      updateFields.push('banner_accept_bg_color = ?');
-      updateValues.push(bannerAcceptBgColor);
-    }
-    if (bannerAcceptTextColor !== undefined) {
-      updateFields.push('banner_accept_text_color = ?');
-      updateValues.push(bannerAcceptTextColor);
-    }
-    if (bannerRejectBgColor !== undefined) {
-      updateFields.push('banner_reject_bg_color = ?');
-      updateValues.push(bannerRejectBgColor);
-    }
-    if (bannerRejectTextColor !== undefined) {
-      updateFields.push('banner_reject_text_color = ?');
-      updateValues.push(bannerRejectTextColor);
-    }
-
-    if (updateFields.length === 0) {
-      return NextResponse.json(
-        { message: 'Nessun campo da aggiornare' },
-        { status: 400 }
-      );
-    }
-
-    updateFields.push('updated_at = ?');
-    updateValues.push(now);
-    updateValues.push(projectId);
-
+    const now = new Date().toISOString();
+    
+    // Aggiorna il progetto
     await db.execute({
-      sql: `UPDATE projects SET ${updateFields.join(', ')} WHERE id = ?`,
-      args: updateValues
+      sql: `
+        UPDATE projects 
+        SET name = ?, domain = ?, language = ?, banner_config = ?, updated_at = ?
+        WHERE id = ? AND is_active = 1
+      `,
+      args: [
+        name || null,
+        domain || null,
+        language || null,
+        banner_config ? JSON.stringify(banner_config) : null,
+        now,
+        projectId
+      ]
     });
 
-    // Recupera il progetto aggiornato
-    const updatedProject = await db.execute({
-      sql: 'SELECT * FROM projects WHERE id = ?',
-      args: [projectId]
+    // Log dell'aggiornamento
+    await db.execute({
+      sql: `
+        INSERT INTO audit_logs (
+          user_id, action, resource, resource_id, details,
+          ip_address, user_agent, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      args: [
+        user.id,
+        'update_project',
+        'project',
+        projectId,
+        JSON.stringify({ name, domain, language }),
+        request.headers.get('x-forwarded-for') || 'unknown',
+        request.headers.get('user-agent') || 'unknown',
+        now
+      ]
     });
 
     return NextResponse.json({
-      message: 'Progetto aggiornato con successo',
-      project: updatedProject.rows[0]
+      success: true,
+      message: 'Progetto aggiornato con successo'
     });
 
   } catch (error) {
-    console.error('Errore nell\'aggiornamento progetto:', error);
+    console.error('PUT /api/projects/[id] - Errore:', error);
     return NextResponse.json(
-      { message: 'Errore interno del server' },
+      { error: 'Errore interno del server' },
       { status: 500 }
     );
   }
@@ -223,43 +160,92 @@ export async function DELETE(
 ) {
   try {
     const projectId = params.id;
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
+    console.log('DELETE /api/projects/[id] - Progetto ID:', projectId);
+    
+    // Verifica autenticazione
+    const user = await AuthManager.getAuthenticatedUser(request);
+    if (!user) {
       return NextResponse.json(
-        { message: 'User ID richiesto' },
-        { status: 400 }
+        { error: 'Accesso non autorizzato' },
+        { status: 401 }
       );
     }
 
-    // Verifica che il progetto appartenga all'utente
-    const checkResult = await db.execute({
-      sql: 'SELECT id FROM projects WHERE id = ? AND user_id = ?',
-      args: [projectId, userId]
+    // Recupera il progetto per verificare l'owner
+    const result = await db.execute({
+      sql: 'SELECT user_id FROM projects WHERE id = ? AND is_active = 1',
+      args: [projectId]
     });
 
-    if (checkResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       return NextResponse.json(
-        { message: 'Progetto non trovato' },
+        { error: 'Progetto non trovato' },
         { status: 404 }
       );
     }
 
-    // Elimina il progetto (le dipendenze verranno eliminate automaticamente per CASCADE)
+    const project = result.rows[0] as any;
+
+    // Verifica autorizzazione: solo l'owner o admin possono eliminare
+    if (!AuthManager.isAdmin(user) && project.user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Non hai il permesso di eliminare questo progetto' },
+        { status: 403 }
+      );
+    }
+
+    // Elimina il progetto (soft delete)
+    const now = new Date().toISOString();
     await db.execute({
-      sql: 'DELETE FROM projects WHERE id = ? AND user_id = ?',
-      args: [projectId, userId]
+      sql: 'UPDATE projects SET is_active = 0, updated_at = ? WHERE id = ?',
+      args: [now, projectId]
     });
 
+    // Elimina anche i consensi associati
+    await db.execute({
+      sql: 'DELETE FROM consents WHERE project_id = ?',
+      args: [projectId]
+    });
+
+    // Aggiorna contatore progetti utilizzati se non è admin
+    if (!AuthManager.isAdmin(user) && project.user_id === user.id) {
+      await db.execute({
+        sql: 'UPDATE users SET projects_used = CASE WHEN projects_used > 0 THEN projects_used - 1 ELSE 0 END WHERE id = ?',
+        args: [user.id]
+      });
+    }
+
+    // Log dell'eliminazione
+    await db.execute({
+      sql: `
+        INSERT INTO audit_logs (
+          user_id, action, resource, resource_id, details,
+          ip_address, user_agent, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      args: [
+        user.id,
+        'delete_project',
+        'project',
+        projectId,
+        JSON.stringify({ owner_id: project.user_id }),
+        request.headers.get('x-forwarded-for') || 'unknown',
+        request.headers.get('user-agent') || 'unknown',
+        now
+      ]
+    });
+
+    console.log('DELETE /api/projects/[id] - Progetto eliminato:', projectId);
+
     return NextResponse.json({
+      success: true,
       message: 'Progetto eliminato con successo'
     });
 
   } catch (error) {
-    console.error('Errore nell\'eliminazione progetto:', error);
+    console.error('DELETE /api/projects/[id] - Errore:', error);
     return NextResponse.json(
-      { message: 'Errore interno del server' },
+      { error: 'Errore interno del server' },
       { status: 500 }
     );
   }
