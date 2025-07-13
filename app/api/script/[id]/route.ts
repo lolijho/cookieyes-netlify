@@ -32,50 +32,62 @@ export async function GET(
       console.log('⚠️ Errore nel recupero del progetto:', error);
     }
 
-    // Se non trovato, usa configurazione di default ottimizzata per fisiopoint.net
-    if (!project) {
-      project = {
-        id: projectId,
-        name: 'FisioPoint Cookie Manager',
-        domain: 'fisiopoint.net',
-        language: 'it',
-        banner_config: {
-          layout: 'bottom',
-          colors: {
-            background: '#ffffff',
-            text: '#333333',
-            button_accept: '#4f46e5',
-            button_reject: '#6b7280',
-            button_settings: '#4f46e5'
-          },
-          texts: {
-            title: 'Utilizziamo i cookie',
-            description: 'Questo sito utilizza cookie per migliorare la tua esperienza di navigazione.',
-            accept_all: 'Accetta tutti',
-            reject_all: 'Rifiuta',
-            settings: 'Personalizza',
-            save_preferences: 'Salva Preferenze'
-          },
-          categories: {
-            necessary: true,
-            analytics: true,
-            marketing: true,
-            preferences: true
-          },
-          floatingIcon: {
-            enabled: true,
-            position: 'bottom-right',
-            text: '🍪',
-            backgroundColor: '#4f46e5',
-            textColor: '#ffffff'
-          }
+    // Se non trovato, usa configurazione di default generica
+    const defaultConfig = {
+      id: projectId,
+      name: 'Cookie Facile Manager',
+      domain: 'example.com',
+      language: 'it',
+      banner: {
+        title: 'Gestione Cookie',
+        description: 'Utilizziamo i cookie per migliorare la tua esperienza. Clicca "Accetta" per consentire tutti i cookie.',
+        accept_text: 'Accetta Tutti',
+        reject_text: 'Rifiuta Tutti',
+        settings_text: 'Impostazioni',
+        background_color: '#ffffff',
+        text_color: '#000000',
+        button_color: '#4f46e5',
+        button_text_color: '#ffffff',
+        position: 'bottom',
+        show_icon: true
+      },
+      categories: {
+        necessary: {
+          name: 'Necessari',
+          description: 'Cookie essenziali per il funzionamento del sito',
+          enabled: true,
+          required: true
+        },
+        analytics: {
+          name: 'Analytics',
+          description: 'Cookie per analizzare il traffico del sito',
+          enabled: false,
+          required: false
+        },
+        marketing: {
+          name: 'Marketing',
+          description: 'Cookie per pubblicità personalizzate',
+          enabled: false,
+          required: false
+        },
+        preferences: {
+          name: 'Preferenze',
+          description: 'Cookie per ricordare le tue scelte',
+          enabled: false,
+          required: false
         }
-      };
-      console.log('📋 Usando configurazione di default per fisiopoint.net');
-    }
+      },
+      settings: {
+        auto_block: true,
+        consent_mode: 'v2',
+        show_advanced: true,
+        remember_consent: true,
+        cookie_expiry: 365
+      }
+    };
 
     // Genera lo script ottimizzato
-    const script = generateOptimizedScript(project);
+    const script = generateOptimizedScript(project || defaultConfig);
 
     return new Response(script, {
       status: 200,
@@ -112,13 +124,13 @@ function generateOptimizedScript(project: any): string {
 (function() {
   'use strict';
   
-  console.log('🚀 Cookie Facile - Inizializzazione per fisiopoint.net');
+  console.log('🚀 Cookie Facile - Inizializzazione generica');
   
   // === CONFIGURAZIONE ===
   const PROJECT_ID = '${project.id}';
   const PROJECT_CONFIG = ${JSON.stringify(config)};
   const API_BASE = '${baseUrl}';
-  const STORAGE_KEY = 'fisiopoint_cookie_consent';
+  const STORAGE_KEY = 'cookie_facile_consent';
   
   // === GESTIONE CONSENSI ===
   const ConsentManager = {
@@ -918,14 +930,14 @@ function generateOptimizedScript(project: any): string {
 
 function generateSimpleFallbackScript(): string {
   return `
-// Script di fallback per Cookie Facile - fisiopoint.net
+// Script di fallback per Cookie Facile
 console.warn('Cookie Facile: Configurazione non trovata, uso script di fallback');
 
 (function() {
-  if (localStorage.getItem('fisiopoint_cookie_consent')) return;
+  if (localStorage.getItem('cookie_facile_consent')) return;
   
   const banner = document.createElement('div');
-  banner.innerHTML = '<div style="background:#333;color:white;padding:15px;position:fixed;bottom:0;left:0;right:0;z-index:9999;text-align:center;font-family:Arial,sans-serif;">Questo sito utilizza cookie per migliorare la tua esperienza. <button onclick="localStorage.setItem(\\'fisiopoint_cookie_consent\\',\\'true\\');this.parentElement.remove();" style="background:#4f46e5;color:white;border:none;padding:8px 16px;margin-left:10px;border-radius:4px;cursor:pointer;font-size:14px;">Accetta</button></div>';
+  banner.innerHTML = '<div style="background:#333;color:white;padding:15px;position:fixed;bottom:0;left:0;right:0;z-index:9999;text-align:center;font-family:Arial,sans-serif;">Questo sito utilizza cookie per migliorare la tua esperienza. <button onclick="localStorage.setItem(\\'cookie_facile_consent\\',\\'true\\');this.parentElement.remove();" style="background:#4f46e5;color:white;border:none;padding:8px 16px;margin-left:10px;border-radius:4px;cursor:pointer;font-size:14px;">Accetta</button></div>';
   document.body.appendChild(banner);
 })();`;
 } 
