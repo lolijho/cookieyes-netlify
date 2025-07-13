@@ -7,6 +7,7 @@ export async function GET(
 ) {
   try {
     const projectId = params.id;
+    console.log('🔍 Generando script per progetto:', projectId);
 
     // Cerca il progetto nella tabella projects
     let project = null;
@@ -25,17 +26,18 @@ export async function GET(
           language: row.language,
           banner_config: row.banner_config ? JSON.parse(row.banner_config as string) : null
         };
+        console.log('✅ Progetto trovato:', project.name);
       }
     } catch (error) {
-      console.log('Errore nel recupero del progetto:', error);
+      console.log('⚠️ Errore nel recupero del progetto:', error);
     }
 
-    // Se non trovato, usa configurazione di default
+    // Se non trovato, usa configurazione di default ottimizzata per fisiopoint.net
     if (!project) {
       project = {
         id: projectId,
-        name: 'Progetto Default',
-        domain: 'example.com',
+        name: 'FisioPoint Cookie Manager',
+        domain: 'fisiopoint.net',
         language: 'it',
         banner_config: {
           layout: 'bottom',
@@ -69,29 +71,28 @@ export async function GET(
           }
         }
       };
-      
-      console.log('Usando configurazione di default per progetto:', projectId);
+      console.log('📋 Usando configurazione di default per fisiopoint.net');
     }
 
-    // Genera lo script
-    const script = generateCookieBannerScript(project);
+    // Genera lo script ottimizzato
+    const script = generateOptimizedScript(project);
 
     return new Response(script, {
       status: 200,
       headers: {
         'Content-Type': 'application/javascript',
-        'Cache-Control': 'public, max-age=300', // Cache per 5 minuti
+        'Cache-Control': 'public, max-age=300',
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type'
       }
     });
 
   } catch (error) {
-    console.error('Errore nella generazione dello script:', error);
+    console.error('❌ Errore nella generazione dello script:', error);
     
-    // Ritorna script di fallback in caso di errore
-    const fallbackScript = generateFallbackScript();
+    // Ritorna script di fallback semplificato
+    const fallbackScript = generateSimpleFallbackScript();
     return new Response(fallbackScript, {
       status: 200,
       headers: {
@@ -103,520 +104,161 @@ export async function GET(
   }
 }
 
-function generateCookieBannerScript(project: any): string {
+function generateOptimizedScript(project: any): string {
   const config = project.banner_config;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://cookie-1-3brtxddcb-lolijhos-projects.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://cookie-1-q8jw9wp4t-lolijhos-projects.vercel.app';
   
   return `
 (function() {
   'use strict';
   
-  // === CONFIGURAZIONE PROGETTO ===
+  console.log('🚀 Cookie Facile - Inizializzazione per fisiopoint.net');
+  
+  // === CONFIGURAZIONE ===
   const PROJECT_ID = '${project.id}';
   const PROJECT_CONFIG = ${JSON.stringify(config)};
   const API_BASE = '${baseUrl}';
-  
-  // === COOKIE SCANNER ===
-  const CookieScanner = {
-    // Cache dei cookie scansionati
-    lastScanResults: null,
-    scanInterval: null,
-    
-    // Scansiona tutti i cookie presenti
-    scanCookies: function() {
-      const cookies = {};
-      const rawCookies = document.cookie.split(';');
-      
-      console.log('🔍 Scansionando cookie...', rawCookies.length, 'cookie trovati');
-      
-      rawCookies.forEach(cookie => {
-        const [name, value] = cookie.trim().split('=');
-        if (name && name.trim()) {
-          const cleanName = name.trim();
-          const category = this.categorizeByName(cleanName);
-          
-          cookies[cleanName] = {
-            name: cleanName,
-            value: value || '',
-            category: category,
-            size: cookie.length,
-            domain: window.location.hostname,
-            path: '/',
-            timestamp: Date.now()
-          };
-        }
-      });
-      
-      // Scansiona anche localStorage e sessionStorage
-      const storage = this.scanStorage();
-      
-      // Scansiona script attivi
-      const scripts = this.scanScripts();
-      
-      const results = { 
-        cookies, 
-        storage, 
-        scripts,
-        summary: this.generateSummary(cookies, storage, scripts)
-      };
-      
-      this.lastScanResults = results;
-      console.log('✅ Scan completato:', results.summary);
-      
-      return results;
-    },
-    
-    // Categorizza i cookie per nome con database più avanzato
-    categorizeByName: function(name) {
-      const lowerName = name.toLowerCase();
-      
-      // Database avanzato di categorizzazione
-      const cookieDatabase = {
-        necessary: [
-          'session', 'csrf', 'auth', 'security', 'login', 'token', 'xsrf',
-          'phpsessid', 'jsessionid', 'asp.net_sessionid', 'cfid', 'cftoken',
-          'ci_session', 'laravel_session', 'connect.sid', 'rack.session',
-          'wordpress_logged_in', 'wp-settings', 'wordpress_test_cookie',
-          'cookieyes', 'cookie_consent', 'gdpr', 'necessary', 'essential',
-          'functional', 'technical', 'performance', 'basic', 'core'
-        ],
-        analytics: [
-          'ga', 'google', 'analytics', 'gtm', 'gtag', '_utm', '_gid', '_gat',
-          'collect', 'doubleclick', 'adsystem', 'googlesyndication',
-          'hotjar', 'mixpanel', 'segment', 'amplitude', 'heap', 'fullstory',
-          'mouseflow', 'crazy', 'quantcast', 'comscore', 'nielsen', 'scorecard',
-          'chartbeat', 'parsely', 'adobe', 'omniture', 'sitecatalyst',
-          'piwik', 'matomo', 'yandex', 'metrika', 'baidu', 'cnzz'
-        ],
-        marketing: [
-          'fb', 'facebook', 'ads', 'advertising', 'marketing', 'track', 'pixel',
-          'adnxs', 'adsystem', 'doubleclick', 'googlesyndication', 'amazon',
-          'twitter', 'linkedin', 'pinterest', 'instagram', 'snapchat', 'tiktok',
-          'youtube', 'vimeo', 'outbrain', 'taboola', 'criteo', 'medianet',
-          'bing', 'yahoo', 'rtb', 'programmatic', 'retargeting', 'remarketing',
-          'conversion', 'affiliate', 'partner', 'referral', 'campaign'
-        ],
-        preferences: [
-          'pref', 'preference', 'settings', 'config', 'lang', 'language',
-          'locale', 'theme', 'dark', 'light', 'currency', 'timezone',
-          'region', 'country', 'city', 'location', 'accessibility',
-          'font', 'size', 'color', 'layout', 'view', 'display',
-          'remember', 'save', 'store', 'custom', 'personal', 'user'
-        ]
-      };
-      
-      // Verifica le categorie in ordine di priorità
-      for (const [category, keywords] of Object.entries(cookieDatabase)) {
-        if (keywords.some(keyword => lowerName.includes(keyword))) {
-          return category;
-        }
-      }
-      
-      // Pattern matching avanzato per domini specifici
-      const domainPatterns = {
-        analytics: /^_(ga|gid|gat|utm|fbp|fbc|tj|hjid|hj|mp_|amp_|heap|fs_|mf_|ceg|qc|nr|sc|parsely|s_|adobe|omtr|piwik|matomo|ya|ba|cnzz)/,
-        marketing: /^(fr|tr|ads|ad_|fb|ig|tw|li|pin|sc|tt|yt|vm|ob|tb|cto|mn|ms|yh|rtb|prog|retarg|conv|aff|ref|camp)/,
-        preferences: /^(pref|set|cfg|lang|loc|theme|curr|tz|reg|acc|font|col|lay|view|disp|rem|sav|cust|pers|usr)/
-      };
-      
-      for (const [category, pattern] of Object.entries(domainPatterns)) {
-        if (pattern.test(lowerName)) {
-          return category;
-        }
-      }
-      
-      return 'necessary'; // Default: necessari per sicurezza
-    },
-    
-    // Scansiona localStorage e sessionStorage
-    scanStorage: function() {
-      const storage = {
-        localStorage: [],
-        sessionStorage: []
-      };
-      
-      try {
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && !key.startsWith('cookie_consent_')) {
-            storage.localStorage.push({
-              key: key,
-              category: this.categorizeByName(key)
-            });
-          }
-        }
-        
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i);
-          if (key) {
-            storage.sessionStorage.push({
-              key: key,
-              category: this.categorizeByName(key)
-            });
-          }
-        }
-      } catch (e) {
-        console.warn('Impossibile scansionare storage:', e);
-      }
-      
-      return storage;
-    },
-    
-    // Scansiona script attivi
-    scanScripts: function() {
-      const scripts = {
-        total: 0,
-        blocked: 0,
-        active: 0,
-        byCategory: {
-          necessary: [],
-          analytics: [],
-          marketing: [],
-          preferences: []
-        }
-      };
-      
-      const allScripts = document.querySelectorAll('script');
-      
-      allScripts.forEach(script => {
-        scripts.total++;
-        
-        let category = 'necessary';
-        let isBlocked = false;
-        
-        // Verifica se è bloccato
-        if (script.dataset.blocked === 'true') {
-          isBlocked = true;
-          scripts.blocked++;
-          category = script.dataset.category || 'necessary';
-        } else {
-          scripts.active++;
-          
-          // Categorizza script attivi
-          if (script.dataset.cookieCategory) {
-            category = script.dataset.cookieCategory;
-          } else if (script.src) {
-            category = ScriptBlocker.categorizeScript(script.src);
-          }
-        }
-        
-        scripts.byCategory[category].push({
-          src: script.src || 'inline',
-          type: script.type,
-          blocked: isBlocked,
-          category: category,
-          size: script.outerHTML.length
-        });
-      });
-      
-      return scripts;
-    },
-    
-    // Genera sommario dei risultati
-    generateSummary: function(cookies, storage, scripts) {
-      const cookiesByCategory = {
-        necessary: 0,
-        analytics: 0,
-        marketing: 0,
-        preferences: 0
-      };
-      
-      Object.values(cookies).forEach(cookie => {
-        cookiesByCategory[cookie.category]++;
-      });
-      
-      const storageByCategory = {
-        necessary: 0,
-        analytics: 0,
-        marketing: 0,
-        preferences: 0
-      };
-      
-      [...storage.localStorage, ...storage.sessionStorage].forEach(item => {
-        storageByCategory[item.category]++;
-      });
-      
-      return {
-        cookies: {
-          total: Object.keys(cookies).length,
-          byCategory: cookiesByCategory
-        },
-        storage: {
-          total: storage.localStorage.length + storage.sessionStorage.length,
-          localStorage: storage.localStorage.length,
-          sessionStorage: storage.sessionStorage.length,
-          byCategory: storageByCategory
-        },
-        scripts: {
-          total: scripts.total,
-          active: scripts.active,
-          blocked: scripts.blocked,
-          byCategory: {
-            necessary: scripts.byCategory.necessary.length,
-            analytics: scripts.byCategory.analytics.length,
-            marketing: scripts.byCategory.marketing.length,
-            preferences: scripts.byCategory.preferences.length
-          }
-        }
-      };
-    },
-    
-    // Avvia monitoraggio continuo
-    startMonitoring: function() {
-      if (this.scanInterval) {
-        clearInterval(this.scanInterval);
-      }
-      
-      // Scansiona ogni 10 secondi
-      this.scanInterval = setInterval(() => {
-        const newResults = this.scanCookies();
-        
-        // Controlla se ci sono cambiamenti
-        if (this.hasChanges(newResults)) {
-          console.log('🔄 Rilevati cambiamenti nei cookie/storage');
-          
-          // Verifica consensi se necessario
-          const consent = ConsentManager.getConsent();
-          if (consent) {
-            ConsentManager.applyConsents(consent);
-          }
-        }
-      }, 10000);
-      
-      console.log('👀 Monitoraggio cookie avviato');
-    },
-    
-    // Ferma monitoraggio
-    stopMonitoring: function() {
-      if (this.scanInterval) {
-        clearInterval(this.scanInterval);
-        this.scanInterval = null;
-        console.log('⏹️ Monitoraggio cookie fermato');
-      }
-    },
-    
-    // Verifica se ci sono cambiamenti
-    hasChanges: function(newResults) {
-      if (!this.lastScanResults) return true;
-      
-      const oldCookies = Object.keys(this.lastScanResults.cookies);
-      const newCookies = Object.keys(newResults.cookies);
-      
-      return oldCookies.length !== newCookies.length || 
-             !oldCookies.every(name => newCookies.includes(name));
-    }
-  };
+  const STORAGE_KEY = 'fisiopoint_cookie_consent';
   
   // === GESTIONE CONSENSI ===
   const ConsentManager = {
-    STORAGE_KEY: 'cookie_consent_' + PROJECT_ID,
-    
-    // Verifica se il consenso è già stato dato
     hasConsent: function() {
-      return localStorage.getItem(this.STORAGE_KEY) !== null;
+      return localStorage.getItem(STORAGE_KEY) !== null;
     },
     
-    // Ottiene i consensi salvati
     getConsent: function() {
       try {
-        const stored = localStorage.getItem(this.STORAGE_KEY);
+        const stored = localStorage.getItem(STORAGE_KEY);
         return stored ? JSON.parse(stored) : null;
       } catch (e) {
+        console.warn('Errore nel recupero consenso:', e);
         return null;
       }
     },
     
-    // Salva il consenso
     saveConsent: function(consents) {
       const consentData = {
         ...consents,
         timestamp: Date.now(),
-        version: '1.0'
+        version: '2.0',
+        projectId: PROJECT_ID
       };
       
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(consentData));
-      
-      // Applica i consensi
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(consentData));
       this.applyConsents(consents);
+      this.hideBanner();
+      
+      console.log('✅ Consenso salvato:', consents);
       
       // Invia al server (non bloccante)
       this.sendToServer(consentData);
-      
-      // Nasconde il banner
-      this.hideBanner();
-      
-      console.log('Cookie consent salvato:', consents);
     },
     
-    // Applica i consensi agli script e cookie
     applyConsents: function(consents) {
-      // Rimuove i cookie non consentiti
-      this.manageCookies(consents);
-      
-      // Sblocca script precedentemente bloccati
-      ScriptBlocker.unblockScripts(consents);
-      
-      // Gestisce Google Consent Mode se disponibile
-      if (typeof gtag !== 'undefined') {
+      // Gestisce Google Analytics
+      if (consents.analytics && typeof gtag !== 'undefined') {
         gtag('consent', 'update', {
-          ad_storage: consents.marketing ? 'granted' : 'denied',
-          analytics_storage: consents.analytics ? 'granted' : 'denied',
-          ad_user_data: consents.marketing ? 'granted' : 'denied',
-          ad_personalization: consents.marketing ? 'granted' : 'denied',
-          functionality_storage: consents.preferences ? 'granted' : 'denied',
-          personalization_storage: consents.preferences ? 'granted' : 'denied',
-          security_storage: 'granted'
+          analytics_storage: 'granted',
+          ad_storage: consents.marketing ? 'granted' : 'denied'
         });
       }
       
-      // Attiva/disattiva script di terze parti
-      this.manageThirdPartyScripts(consents);
+      // Gestisce Facebook Pixel
+      if (consents.marketing && typeof fbq !== 'undefined') {
+        fbq('consent', 'grant');
+      }
       
-      // Scansiona nuovamente i cookie dopo l'applicazione dei consensi
-      setTimeout(() => {
-        const scanResult = CookieScanner.scanCookies();
-        console.log('Cookie scansionati dopo consenso:', scanResult);
-      }, 1000);
+      // Rimuove cookie non autorizzati
+      this.cleanupCookies(consents);
     },
     
-    // Gestisce i cookie esistenti
-    manageCookies: function(consents) {
-      const scanner = CookieScanner.scanCookies();
-      
-      Object.values(scanner.cookies).forEach(cookie => {
-        if (!consents[cookie.category] && cookie.category !== 'necessary') {
-          // Rimuove il cookie non consentito
-          document.cookie = cookie.name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-          document.cookie = cookie.name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname + ';';
-          document.cookie = cookie.name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + window.location.hostname + ';';
+    cleanupCookies: function(consents) {
+      const cookies = document.cookie.split(';');
+      cookies.forEach(cookie => {
+        const [name] = cookie.trim().split('=');
+        if (name && !this.isNecessaryCookie(name)) {
+          if (!consents.analytics && this.isAnalyticsCookie(name)) {
+            this.removeCookie(name);
+          }
+          if (!consents.marketing && this.isMarketingCookie(name)) {
+            this.removeCookie(name);
+          }
         }
       });
-      
-      // Pulisce localStorage/sessionStorage se non consentiti
-      if (!consents.preferences) {
-        scanner.storage.localStorage.forEach(item => {
-          if (item.category === 'preferences') {
-            try { localStorage.removeItem(item.key); } catch (e) {}
-          }
-        });
-      }
     },
     
-    // Gestisce script di terze parti
-    manageThirdPartyScripts: function(consents) {
-      // Google Analytics
-      if (consents.analytics && !window.gtag) {
-        this.loadGoogleAnalytics();
-      }
-      
-      // Facebook Pixel
-      if (consents.marketing && !window.fbq) {
-        this.loadFacebookPixel();
-      }
-      
-      // Altri script possono essere aggiunti qui
+    isNecessaryCookie: function(name) {
+      const necessary = ['session', 'csrf', 'auth', 'phpsessid', 'wordpress_logged_in'];
+      return necessary.some(n => name.toLowerCase().includes(n));
     },
     
-    // Carica Google Analytics
-    loadGoogleAnalytics: function() {
-      if (window.GA_TRACKING_ID) {
-        const script = document.createElement('script');
-        script.async = true;
-        script.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.GA_TRACKING_ID;
-        document.head.appendChild(script);
-        
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        window.gtag = gtag;
-        gtag('js', new Date());
-        gtag('config', window.GA_TRACKING_ID);
-      }
+    isAnalyticsCookie: function(name) {
+      const analytics = ['_ga', '_gid', '_gat', '_utm', 'analytics'];
+      return analytics.some(n => name.toLowerCase().includes(n));
     },
     
-    // Carica Facebook Pixel
-    loadFacebookPixel: function() {
-      if (window.FB_PIXEL_ID) {
-        !function(f,b,e,v,n,t,s)
-        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-        n.queue=[];t=b.createElement(e);t.async=!0;
-        t.src=v;s=b.getElementsByTagName(e)[0];
-        s.parentNode.insertBefore(t,s)}(window, document,'script',
-        'https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', window.FB_PIXEL_ID);
-        fbq('track', 'PageView');
-      }
+    isMarketingCookie: function(name) {
+      const marketing = ['_fbp', 'fr', 'ads', 'tracking'];
+      return marketing.some(n => name.toLowerCase().includes(n));
     },
     
-    // Invia i consensi al server
+    removeCookie: function(name) {
+      document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname + ';';
+    },
+    
     sendToServer: function(consentData) {
-      const data = {
-        projectId: PROJECT_ID,
-        consents: consentData,
-        domain: window.location.hostname,
-        userAgent: navigator.userAgent,
-        url: window.location.href,
-        referrer: document.referrer,
-        timestamp: new Date().toISOString(),
-        cookiesScan: CookieScanner.scanCookies()
-      };
-      
       fetch(API_BASE + '/api/consents', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: PROJECT_ID,
+          consents: consentData,
+          domain: window.location.hostname,
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+          timestamp: new Date().toISOString()
+        })
       }).catch(err => console.warn('Errore invio consensi:', err));
     },
     
-    // Nasconde il banner e mostra l'iconcina persistente
     hideBanner: function() {
       const banner = document.getElementById('cookie-banner');
       if (banner) {
         banner.style.display = 'none';
       }
       
-      // Mostra l'iconcina persistente se abilitata
       if (PROJECT_CONFIG.floatingIcon.enabled) {
         FloatingIcon.show();
       }
     }
   };
   
-  // === COOKIE BANNER UI ===
+  // === BANNER UI ===
   const BannerUI = {
-    // Crea e mostra il banner
     show: function() {
       if (ConsentManager.hasConsent()) {
-        return; // Non mostrare se il consenso è già stato dato
+        return;
       }
       
       const banner = this.createBanner();
       document.body.appendChild(banner);
       
-      // Animazione di entrata
       setTimeout(() => {
         banner.style.transform = 'translateY(0)';
         banner.style.opacity = '1';
       }, 100);
     },
     
-    // Crea l'elemento banner
     createBanner: function() {
       const banner = document.createElement('div');
       banner.id = 'cookie-banner';
       banner.innerHTML = this.getBannerHTML();
       banner.style.cssText = this.getBannerCSS();
-      
-      // Event listeners
       this.attachEventListeners(banner);
-      
       return banner;
     },
     
-    // HTML del banner
     getBannerHTML: function() {
       const config = PROJECT_CONFIG;
       return \`
@@ -643,9 +285,7 @@ function generateCookieBannerScript(project: any): string {
             <button id="cookie-close-settings" class="cookie-close-btn">✕</button>
           </div>
           <div class="cookie-settings-description">
-            <p>Utilizziamo i cookie per aiutarti a navigare in maniera efficiente e a svolgere determinate funzioni. Troverai informazioni dettagliate su tutti i cookie sotto ogni categoria di consensi sottostanti. I cookie categorizzati come "Necessari" vengono memorizzati sul tuo browser in quanto essenziali per consentire le funzionalità di base del sito.</p>
-            <p>Utilizziamo inoltre cookie di terze parti che ci aiutano nell'analizzare come utilizzi questo sito web, memorizzare le tue preferenze e offrirti contenuti e pubblicità rilevanti per te. Questi cookie saranno memorizzati sul tuo browser solo a seguito del tuo consenso.</p>
-            <p>Puoi decidere di attivare o disattivare alcuni o tutti questi cookie, ma la disattivazione di alcuni di questi potrebbe avere un impatto sulla tua esperienza sul browser.</p>
+            <p>Utilizziamo i cookie per aiutarti a navigare in maniera efficiente e a svolgere determinate funzioni.</p>
           </div>
           <div class="cookie-categories">
             <div class="cookie-category cookie-category-necessary">
@@ -671,9 +311,6 @@ function generateCookieBannerScript(project: any): string {
                   <small>Ci aiutano a migliorare il sito analizzando come viene utilizzato</small>
                 </div>
               </div>
-              <div class="cookie-category-details">
-                <p>Questi cookie raccolgono informazioni aggregate e anonime su come i visitatori utilizzano il sito web.</p>
-              </div>
             </div>
             <div class="cookie-category">
               <div class="cookie-category-header">
@@ -686,9 +323,6 @@ function generateCookieBannerScript(project: any): string {
                   <small>Utilizzati per mostrare annunci pertinenti e personalizzati</small>
                 </div>
               </div>
-              <div class="cookie-category-details">
-                <p>Permettono di monitorare i visitatori sui siti web per mostrare annunci rilevanti e coinvolgenti.</p>
-              </div>
             </div>
             <div class="cookie-category">
               <div class="cookie-category-header">
@@ -700,9 +334,6 @@ function generateCookieBannerScript(project: any): string {
                   <strong>⚙️ Cookie Preferenze</strong>
                   <small>Memorizzano le tue preferenze e impostazioni personali</small>
                 </div>
-              </div>
-              <div class="cookie-category-details">
-                <p>Salvano informazioni su lingue, regioni, accessibilità e altre preferenze personalizzate.</p>
               </div>
             </div>
           </div>
@@ -721,7 +352,6 @@ function generateCookieBannerScript(project: any): string {
       \`;
     },
     
-    // CSS del banner
     getBannerCSS: function() {
       const config = PROJECT_CONFIG;
       const position = config.layout === 'top' ? 'top: 0;' : 'bottom: 0;';
@@ -747,24 +377,6 @@ function generateCookieBannerScript(project: any): string {
       \`;
     },
     
-    // Mostra solo il pannello impostazioni (per iconcina persistente)
-    showSettingsOnly: function() {
-      const banner = this.createBanner();
-      banner.querySelector('.cookie-banner-content').style.display = 'none';
-      banner.querySelector('#cookie-settings-panel').style.display = 'block';
-      banner.querySelector('#cookie-settings-panel').style.maxHeight = '800px';
-      banner.querySelector('#cookie-settings-panel').style.opacity = '1';
-      
-      document.body.appendChild(banner);
-      
-      // Animazione di entrata
-      setTimeout(() => {
-        banner.style.transform = 'translateY(0)';
-        banner.style.opacity = '1';
-      }, 100);
-    },
-    
-    // Aggiunge event listeners
     attachEventListeners: function(banner) {
       // Accetta tutti
       banner.querySelector('#cookie-accept-all').addEventListener('click', () => {
@@ -776,7 +388,7 @@ function generateCookieBannerScript(project: any): string {
         });
       });
       
-      // Rifiuta tutti (tranne necessari)
+      // Rifiuta tutti
       banner.querySelector('#cookie-reject-all').addEventListener('click', () => {
         ConsentManager.saveConsent({
           necessary: true,
@@ -786,29 +398,14 @@ function generateCookieBannerScript(project: any): string {
         });
       });
       
-      // Mostra pannello impostazioni
+      // Mostra impostazioni
       banner.querySelector('#cookie-settings').addEventListener('click', () => {
         const panel = banner.querySelector('#cookie-settings-panel');
-        const isVisible = panel.style.display !== 'none';
-        panel.style.display = isVisible ? 'none' : 'block';
-        
-        // Animazione
-        if (!isVisible) {
-          panel.style.maxHeight = '0';
-          panel.style.opacity = '0';
-          setTimeout(() => {
-            panel.style.maxHeight = '800px';
-            panel.style.opacity = '1';
-          }, 10);
-        }
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
       });
       
-      // Chiudi pannello impostazioni
+      // Chiudi impostazioni
       banner.querySelector('#cookie-close-settings').addEventListener('click', () => {
-        const panel = banner.querySelector('#cookie-settings-panel');
-        panel.style.display = 'none';
-        
-        // Rimuove il banner e ricrea l'icona persistente
         banner.remove();
         if (PROJECT_CONFIG.floatingIcon.enabled) {
           FloatingIcon.show();
@@ -818,56 +415,46 @@ function generateCookieBannerScript(project: any): string {
       // Salva impostazioni personalizzate
       banner.querySelector('#cookie-accept-selected').addEventListener('click', () => {
         const consents = {
-          necessary: true, // Sempre true
+          necessary: true,
           analytics: banner.querySelector('#consent-analytics').checked,
           marketing: banner.querySelector('#consent-marketing').checked,
           preferences: banner.querySelector('#consent-preferences').checked
         };
         ConsentManager.saveConsent(consents);
-        
-        // Rimuove il banner e ricrea l'icona persistente
         banner.remove();
         if (PROJECT_CONFIG.floatingIcon.enabled) {
           FloatingIcon.show();
         }
       });
       
-      // Accetta tutti dal pannello impostazioni
+      // Accetta tutti dalle impostazioni
       banner.querySelector('#cookie-accept-all-settings').addEventListener('click', () => {
-        // Imposta tutti i checkbox
         banner.querySelector('#consent-analytics').checked = true;
         banner.querySelector('#consent-marketing').checked = true;
         banner.querySelector('#consent-preferences').checked = true;
-        
         ConsentManager.saveConsent({
           necessary: true,
           analytics: true,
           marketing: true,
           preferences: true
         });
-        
-        // Rimuove il banner e ricrea l'icona persistente
         banner.remove();
         if (PROJECT_CONFIG.floatingIcon.enabled) {
           FloatingIcon.show();
         }
       });
       
-      // Rifiuta tutti dal pannello impostazioni
+      // Rifiuta tutti dalle impostazioni
       banner.querySelector('#cookie-reject-all-settings').addEventListener('click', () => {
-        // Disattiva tutti i checkbox tranne necessari
         banner.querySelector('#consent-analytics').checked = false;
         banner.querySelector('#consent-marketing').checked = false;
         banner.querySelector('#consent-preferences').checked = false;
-        
         ConsentManager.saveConsent({
           necessary: true,
           analytics: false,
           marketing: false,
           preferences: false
         });
-        
-        // Rimuove il banner e ricrea l'icona persistente
         banner.remove();
         if (PROJECT_CONFIG.floatingIcon.enabled) {
           FloatingIcon.show();
@@ -878,9 +465,7 @@ function generateCookieBannerScript(project: any): string {
   
   // === ICONCINA PERSISTENTE ===
   const FloatingIcon = {
-    // Mostra l'iconcina persistente
     show: function() {
-      // Rimuove l'iconcina esistente se presente
       const existingIcon = document.getElementById('cookie-floating-icon');
       if (existingIcon) {
         existingIcon.remove();
@@ -889,14 +474,12 @@ function generateCookieBannerScript(project: any): string {
       const icon = this.createIcon();
       document.body.appendChild(icon);
       
-      // Animazione di entrata
       setTimeout(() => {
         icon.style.transform = 'translateY(0) scale(1)';
         icon.style.opacity = '1';
       }, 100);
     },
     
-    // Crea l'elemento iconcina
     createIcon: function() {
       const icon = document.createElement('div');
       icon.id = 'cookie-floating-icon';
@@ -908,7 +491,6 @@ function generateCookieBannerScript(project: any): string {
       \`;
       icon.style.cssText = this.getIconCSS();
       
-      // Event listener per aprire le impostazioni
       icon.addEventListener('click', () => {
         this.openSettings();
       });
@@ -916,19 +498,14 @@ function generateCookieBannerScript(project: any): string {
       return icon;
     },
     
-    // Apre le impostazioni cookie
     openSettings: function() {
-      // Rimuove l'iconcina
       const icon = document.getElementById('cookie-floating-icon');
       if (icon) {
         icon.remove();
       }
-      
-      // Mostra il banner con le impostazioni aperte
-      BannerUI.showSettingsOnly();
+      BannerUI.show();
     },
     
-    // CSS per l'iconcina
     getIconCSS: function() {
       const config = PROJECT_CONFIG.floatingIcon;
       const positions = {
@@ -960,380 +537,42 @@ function generateCookieBannerScript(project: any): string {
     }
   };
   
-  // === BLOCCO PREVENTIVO SCRIPT ===
-  const ScriptBlocker = {
-    // Lista di script da bloccare prima del consenso
-    blockedScripts: [
-      'googletagmanager.com/gtag/js',
-      'google-analytics.com/analytics.js',
-      'googletagmanager.com/gtm.js',
-      'facebook.net/en_US/fbevents.js',
-      'connect.facebook.net',
-      'doubleclick.net',
-      'googlesyndication.com',
-      'hotjar.com',
-      'mixpanel.com',
-      'segment.com',
-      'amplitude.com',
-      'fullstory.com',
-      'mouseflow.com',
-      'crazyegg.com',
-      'quantcast.com',
-      'comscore.com',
-      'chartbeat.com',
-      'twitter.com/i/adsct',
-      'linkedin.com/insight',
-      'pinterest.com/ct',
-      'snapchat.com/ct',
-      'tiktok.com/i18n/pixel',
-      'youtube.com/iframe_api',
-      'vimeo.com/api',
-      'outbrain.com',
-      'taboola.com',
-      'criteo.com',
-      'amazon-adsystem.com',
-      'bing.com/scripts',
-      'yahoo.com/dot.gif',
-      'yandex.ru/metrika',
-      'baidu.com/h.js'
-    ],
-    
-    // Referenze originali salvate
-    originalCreateElement: null,
-    originalAppendChild: null,
-    originalCookieDescriptor: null,
-    
-    // Inizializza il blocco preventivo
-    init: function() {
-      console.log('🔒 Inizializzo ScriptBlocker...');
-      
-      // Salva referenze originali
-      this.originalCreateElement = document.createElement;
-      this.originalAppendChild = Element.prototype.appendChild;
-      this.originalCookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
-      
-      // Avvia tutti i blocchi
-      this.blockScripts();
-      this.blockExistingScripts();
-      this.blockForms();
-      this.interceptCookies();
-      
-      console.log('✅ ScriptBlocker inizializzato');
-    },
-    
-    // Blocca script futuri
-    blockScripts: function() {
-      const self = this;
-      
-      // Intercetta creazione elementi
-      document.createElement = function(tagName) {
-        const element = self.originalCreateElement.call(this, tagName);
-        
-        // Gestisce sia script che immagini
-        if (tagName.toLowerCase() === 'script') {
-          self.processScript(element);
-        } else if (tagName.toLowerCase() === 'img') {
-          self.processImage(element);
-        }
-        
-        return element;
-      };
-      
-      // Intercetta inserimento nel DOM
-      Element.prototype.appendChild = function(child) {
-        if (child.tagName) {
-          const tagName = child.tagName.toLowerCase();
-          
-          if (tagName === 'script') {
-            self.processScript(child);
-          } else if (tagName === 'img') {
-            self.processImage(child);
-          }
-        }
-        
-        return self.originalAppendChild.call(this, child);
-      };
-      
-      // Intercetta insertBefore
-      const originalInsertBefore = Element.prototype.insertBefore;
-      Element.prototype.insertBefore = function(newChild, referenceChild) {
-        if (newChild.tagName) {
-          const tagName = newChild.tagName.toLowerCase();
-          
-          if (tagName === 'script') {
-            self.processScript(newChild);
-          } else if (tagName === 'img') {
-            self.processImage(newChild);
-          }
-        }
-        
-        return originalInsertBefore.call(this, newChild, referenceChild);
-      };
-    },
-    
-    // Processa script esistenti e futuri
-    processScript: function(script) {
-      const consent = ConsentManager.getConsent();
-      
-      // Gestione script con data-cookie-category
-      if (script.dataset && script.dataset.cookieCategory) {
-        const category = script.dataset.cookieCategory;
-        
-        if (!consent || !consent[category]) {
-          console.log('🚫 Script bloccato per categoria:', category, script.src || script.textContent?.substr(0, 50));
-          
-          // Blocca lo script
-          script.type = 'text/plain';
-          script.dataset.blocked = 'true';
-          script.dataset.originalType = 'text/javascript';
-          script.dataset.category = category;
-          
-          // Salva src originale se presente
-          if (script.src) {
-            script.dataset.originalSrc = script.src;
-            script.src = '';
-          }
-          
-          // Salva contenuto originale se presente
-          if (script.textContent) {
-            script.dataset.originalContent = script.textContent;
-            script.textContent = '';
-          }
-          
-          return;
-        }
-      }
-      
-      // Gestione script per URL (fallback)
-      if (script.src && !consent && this.isBlocked(script.src)) {
-        const category = this.categorizeScript(script.src);
-        console.log('🚫 Script bloccato per URL:', script.src, 'categoria:', category);
-        
-        script.type = 'text/plain';
-        script.dataset.blocked = 'true';
-        script.dataset.originalType = 'text/javascript';
-        script.dataset.originalSrc = script.src;
-        script.dataset.category = category;
-        script.src = '';
-      }
-    },
-    
-    // Processa immagini (pixel tracking)
-    processImage: function(img) {
-      const consent = ConsentManager.getConsent();
-      
-      if (img.src && (!consent || !consent.marketing) && this.isTrackingPixel(img.src)) {
-        console.log('🚫 Pixel di tracking bloccato:', img.src);
-        img.dataset.originalSrc = img.src;
-        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-        img.dataset.blocked = 'true';
-      }
-    },
-    
-    // Blocca script già presenti nel DOM
-    blockExistingScripts: function() {
-      const scripts = document.querySelectorAll('script[data-cookie-category]');
-      console.log('🔍 Script esistenti da processare:', scripts.length);
-      
-      scripts.forEach(script => {
-        this.processScript(script);
-      });
-      
-      // Blocca anche immagini di tracking esistenti
-      const images = document.querySelectorAll('img');
-      images.forEach(img => {
-        this.processImage(img);
-      });
-    },
-    
-    // Blocca form tracking
-    blockForms: function() {
-      const self = this;
-      const originalSubmit = HTMLFormElement.prototype.submit;
-      
-      HTMLFormElement.prototype.submit = function() {
-        const consent = ConsentManager.getConsent();
-        if (!consent || !consent.marketing) {
-          // Rimuove eventuali pixel di tracking nei form
-          const trackingElements = this.querySelectorAll('img[src*="facebook.com"], img[src*="google.com"], img[src*="doubleclick.net"]');
-          trackingElements.forEach(el => el.remove());
-          console.log('🚫 Pixel di tracking rimossi dal form');
-        }
-        
-        return originalSubmit.call(this);
-      };
-    },
-    
-    // Intercetta l'impostazione dei cookie
-    interceptCookies: function() {
-      const self = this;
-      
-      Object.defineProperty(document, 'cookie', {
-        get: function() {
-          return self.originalCookieDescriptor.get.call(this);
-        },
-        set: function(value) {
-          const consent = ConsentManager.getConsent();
-          const cookieName = value.split('=')[0].trim();
-          const category = CookieScanner.categorizeByName(cookieName);
-          
-          if (consent) {
-            if (consent[category]) {
-              return self.originalCookieDescriptor.set.call(this, value);
-            } else {
-              console.log('🚫 Cookie bloccato:', cookieName, 'categoria:', category);
-              return;
-            }
-          }
-          
-          // Se non c'è consenso, blocca tutti i cookie tranne quelli necessari
-          if (category === 'necessary') {
-            return self.originalCookieDescriptor.set.call(this, value);
-          } else {
-            console.log('🚫 Cookie bloccato (senza consenso):', cookieName, 'categoria:', category);
-            return;
-          }
-        },
-        configurable: true
-      });
-    },
-    
-    // Verifica se uno script è bloccato
-    isBlocked: function(url) {
-      return this.blockedScripts.some(blocked => url.includes(blocked));
-    },
-    
-    // Verifica se un'immagine è un pixel di tracking
-    isTrackingPixel: function(url) {
-      const trackingDomains = [
-        'facebook.com/tr',
-        'google.com/ads',
-        'doubleclick.net',
-        'googleadservices.com',
-        'googlesyndication.com',
-        'amazon-adsystem.com',
-        'bing.com/tr',
-        'yahoo.com/dot.gif',
-        'twitter.com/i/adsct',
-        'linkedin.com/insight',
-        'pinterest.com/ct',
-        'snapchat.com/ct',
-        'tiktok.com/i18n/pixel'
-      ];
-      
-      return trackingDomains.some(domain => url.includes(domain));
-    },
-    
-    // Riattiva script bloccati dopo consenso
-    unblockScripts: function(consents) {
-      console.log('🔓 Riattivando script per consensi:', consents);
-      
-      // Riattiva script con data-cookie-category
-      const blockedScripts = document.querySelectorAll('script[data-blocked="true"]');
-      
-      blockedScripts.forEach(script => {
-        const category = script.dataset.category;
-        
-        if (category && consents[category]) {
-          console.log('✅ Riattivando script categoria:', category);
-          
-          // Ripristina tipo
-          script.type = script.dataset.originalType || 'text/javascript';
-          
-          // Ripristina src se presente
-          if (script.dataset.originalSrc) {
-            script.src = script.dataset.originalSrc;
-          }
-          
-          // Ripristina contenuto se presente
-          if (script.dataset.originalContent) {
-            script.textContent = script.dataset.originalContent;
-          }
-          
-          // Pulisci attributi di blocco
-          script.removeAttribute('data-blocked');
-          script.removeAttribute('data-original-src');
-          script.removeAttribute('data-original-content');
-          script.removeAttribute('data-original-type');
-          script.removeAttribute('data-category');
-          
-          // Se lo script ha src, ricrea l'elemento per eseguirlo
-          if (script.src) {
-            const newScript = document.createElement('script');
-            newScript.src = script.src;
-            newScript.type = 'text/javascript';
-            
-            // Copia attributi
-            Array.from(script.attributes).forEach(attr => {
-              if (!attr.name.startsWith('data-') && attr.name !== 'src' && attr.name !== 'type') {
-                newScript.setAttribute(attr.name, attr.value);
-              }
-            });
-            
-            script.parentNode.replaceChild(newScript, script);
-          } else if (script.textContent) {
-            // Per script inline, ricrea l'elemento
-            const newScript = document.createElement('script');
-            newScript.textContent = script.textContent;
-            newScript.type = 'text/javascript';
-            
-            script.parentNode.replaceChild(newScript, script);
-          }
-        }
-      });
-      
-      // Riattiva pixel di tracking se necessario
-      if (consents.marketing) {
-        const blockedImages = document.querySelectorAll('img[data-blocked="true"]');
-        blockedImages.forEach(img => {
-          if (img.dataset.originalSrc) {
-            console.log('✅ Riattivando pixel di tracking');
-            img.src = img.dataset.originalSrc;
-            img.removeAttribute('data-blocked');
-            img.removeAttribute('data-original-src');
-          }
-        });
-      }
-    },
-    
-    // Categorizza script per URL
-    categorizeScript: function(url) {
-      const lowerUrl = url.toLowerCase();
-      
-      // Analytics
-      if (lowerUrl.includes('google-analytics') || lowerUrl.includes('gtag') || lowerUrl.includes('gtm') || 
-          lowerUrl.includes('hotjar') || lowerUrl.includes('mixpanel') || lowerUrl.includes('segment') ||
-          lowerUrl.includes('amplitude') || lowerUrl.includes('fullstory') || lowerUrl.includes('mouseflow') ||
-          lowerUrl.includes('crazyegg') || lowerUrl.includes('quantcast') || lowerUrl.includes('comscore') ||
-          lowerUrl.includes('chartbeat') || lowerUrl.includes('parsely') || lowerUrl.includes('adobe') ||
-          lowerUrl.includes('omniture') || lowerUrl.includes('piwik') || lowerUrl.includes('matomo') ||
-          lowerUrl.includes('yandex') || lowerUrl.includes('metrika') || lowerUrl.includes('baidu')) {
-        return 'analytics';
-      }
-      
-      // Marketing
-      if (lowerUrl.includes('facebook') || lowerUrl.includes('doubleclick') || lowerUrl.includes('googlesyndication') ||
-          lowerUrl.includes('amazon-adsystem') || lowerUrl.includes('twitter') || lowerUrl.includes('linkedin') ||
-          lowerUrl.includes('pinterest') || lowerUrl.includes('snapchat') || lowerUrl.includes('tiktok') ||
-          lowerUrl.includes('outbrain') || lowerUrl.includes('taboola') || lowerUrl.includes('criteo') ||
-          lowerUrl.includes('bing') || lowerUrl.includes('yahoo')) {
-        return 'marketing';
-      }
-      
-      // Preferences
-      if (lowerUrl.includes('preferences') || lowerUrl.includes('settings') || lowerUrl.includes('config') ||
-          lowerUrl.includes('theme') || lowerUrl.includes('lang') || lowerUrl.includes('locale')) {
-        return 'preferences';
-      }
-      
-      return 'necessary';
-    }
-  };
-  
   // === INIZIALIZZAZIONE ===
-  
-  // Inizializza il blocco preventivo IMMEDIATAMENTE
-  ScriptBlocker.init();
+  function init() {
+    console.log('🚀 Cookie Facile - Inizializzazione completata');
+    
+    const existingConsent = ConsentManager.getConsent();
+    
+    if (existingConsent) {
+      console.log('✅ Consenso esistente trovato');
+      ConsentManager.applyConsents(existingConsent);
+      
+      if (PROJECT_CONFIG.floatingIcon.enabled) {
+        FloatingIcon.show();
+      }
+    } else {
+      console.log('⚠️ Nessun consenso trovato, mostrando banner');
+      BannerUI.show();
+    }
+    
+    // API globale
+    window.CookieConsent = {
+      show: BannerUI.show,
+      showIcon: FloatingIcon.show,
+      getConsent: ConsentManager.getConsent,
+      updateConsent: ConsentManager.saveConsent,
+      hasConsent: ConsentManager.hasConsent
+    };
+    
+    // Evento di completamento
+    window.dispatchEvent(new CustomEvent('cookieSystemReady', {
+      detail: {
+        projectId: PROJECT_ID,
+        hasConsent: !!existingConsent,
+        api: window.CookieConsent
+      }
+    }));
+  }
   
   // Aspetta che il DOM sia pronto
   if (document.readyState === 'loading') {
@@ -1342,83 +581,7 @@ function generateCookieBannerScript(project: any): string {
     init();
   }
   
-  function init() {
-    console.log('🚀 Inizializzando CookieYes per progetto:', PROJECT_ID);
-    
-    // Controlla se il consenso è già stato dato
-    const existingConsent = ConsentManager.getConsent();
-    
-    if (existingConsent) {
-      // Se il consenso esiste, applica i consensi e mostra l'iconcina
-      console.log('✅ Consenso esistente trovato:', existingConsent);
-      ConsentManager.applyConsents(existingConsent);
-      
-      // Mostra l'iconcina persistente se abilitata
-      if (PROJECT_CONFIG.floatingIcon.enabled) {
-        FloatingIcon.show();
-      }
-    } else {
-      // Se non c'è consenso, mostra il banner
-      console.log('⚠️ Nessun consenso trovato, mostrando banner');
-      BannerUI.show();
-    }
-    
-    // Avvia monitoraggio automatico
-    CookieScanner.startMonitoring();
-    
-    // Scansiona immediatamente
-    setTimeout(() => {
-      CookieScanner.scanCookies();
-    }, 1000);
-    
-    // API globale per gestione manuale
-    window.CookieConsent = {
-      // Interfaccia base
-      show: BannerUI.show,
-      showIcon: FloatingIcon.show,
-      showSettings: BannerUI.showSettingsOnly,
-      hide: () => {
-        const banner = document.getElementById('cookie-banner');
-        if (banner) banner.remove();
-      },
-      
-      // Gestione consensi
-      getConsent: ConsentManager.getConsent,
-      updateConsent: ConsentManager.saveConsent,
-      hasConsent: ConsentManager.hasConsent,
-      
-      // Scansione e monitoraggio
-      scanCookies: CookieScanner.scanCookies,
-      startMonitoring: CookieScanner.startMonitoring,
-      stopMonitoring: CookieScanner.stopMonitoring,
-      getLastScan: () => CookieScanner.lastScanResults,
-      
-      // Utilità
-      categorizeByName: CookieScanner.categorizeByName,
-      isBlocked: ScriptBlocker.isBlocked,
-      
-      // Informazioni progetto
-      getProjectInfo: () => ({
-        id: PROJECT_ID,
-        config: PROJECT_CONFIG,
-        version: '2.0.0'
-      })
-    };
-    
-    // Evento personalizzato per notificare il caricamento
-    window.dispatchEvent(new CustomEvent('cookieSystemReady', {
-      detail: {
-        projectId: PROJECT_ID,
-        hasConsent: !!existingConsent,
-        api: window.CookieConsent
-      }
-    }));
-    
-    console.log('✅ CookieYes inizializzato completamente');
-    console.log('💡 API disponibile tramite window.CookieConsent');
-  }
-  
-  // Aggiunge CSS globale
+  // CSS globale
   const style = document.createElement('style');
   style.textContent = \`
     #cookie-banner .cookie-banner-content {
@@ -1488,7 +651,6 @@ function generateCookieBannerScript(project: any): string {
       box-shadow: 0 4px 20px rgba(0,0,0,0.15);
       border: 1px solid rgba(0,0,0,0.1);
       overflow: hidden;
-      transition: all 0.3s ease;
     }
     
     #cookie-banner .cookie-settings-header {
@@ -1521,10 +683,6 @@ function generateCookieBannerScript(project: any): string {
       transition: all 0.2s ease;
     }
     
-    #cookie-banner .cookie-close-btn:hover {
-      background: rgba(255,255,255,0.3);
-    }
-    
     #cookie-banner .cookie-settings-description {
       padding: 20px;
       margin: 0;
@@ -1532,15 +690,6 @@ function generateCookieBannerScript(project: any): string {
       color: #666;
       font-size: 14px;
       line-height: 1.5;
-    }
-    
-    #cookie-banner .cookie-settings-description p {
-      margin: 0 0 15px 0;
-      line-height: 1.6;
-    }
-    
-    #cookie-banner .cookie-settings-description p:last-child {
-      margin-bottom: 0;
     }
     
     #cookie-banner .cookie-categories {
@@ -1553,11 +702,6 @@ function generateCookieBannerScript(project: any): string {
       background: #f8f9fa;
       border-radius: 8px;
       border: 1px solid #e9ecef;
-      transition: all 0.2s ease;
-    }
-    
-    #cookie-banner .cookie-category:hover {
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     
     #cookie-banner .cookie-category-necessary {
@@ -1584,20 +728,6 @@ function generateCookieBannerScript(project: any): string {
       line-height: 1.4;
     }
     
-    #cookie-banner .cookie-category-details {
-      margin-top: 15px;
-      padding-top: 15px;
-      border-top: 1px solid rgba(0,0,0,0.1);
-    }
-    
-    #cookie-banner .cookie-category-details p {
-      margin: 0;
-      color: #666;
-      font-size: 13px;
-      line-height: 1.4;
-    }
-    
-    /* Toggle Switch Styles */
     #cookie-banner .cookie-switch {
       position: relative;
       display: inline-block;
@@ -1665,62 +795,11 @@ function generateCookieBannerScript(project: any): string {
       border: 1px solid #6c757d;
     }
     
-    #cookie-banner .cookie-btn-secondary:hover {
-      background: #5a6268;
-      border-color: #5a6268;
-    }
-    
-    @media (max-width: 768px) {
-      #cookie-banner .cookie-banner-content {
-        flex-direction: column;
-        text-align: center;
-      }
-      
-      #cookie-banner .cookie-banner-buttons {
-        justify-content: center;
-        width: 100%;
-      }
-      
-      #cookie-banner .cookie-btn {
-        flex: 1;
-        min-width: auto;
-      }
-      
-      #cookie-banner .cookie-settings-panel {
-        margin: 10px;
-        border-radius: 8px;
-      }
-      
-      #cookie-banner .cookie-category-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-      }
-      
-      #cookie-banner .cookie-switch {
-        align-self: flex-end;
-      }
-      
-      #cookie-banner .cookie-settings-buttons {
-        flex-direction: column;
-      }
-      
-      #cookie-banner .cookie-btn {
-        width: 100%;
-        margin: 5px 0;
-      }
-    }
-    
-    /* === STILI ICONCINA PERSISTENTE === */
-    
     #cookie-floating-icon {
       position: fixed;
       z-index: 9999;
       cursor: pointer;
       user-select: none;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
     }
     
     #cookie-floating-icon .floating-icon-content {
@@ -1775,12 +854,46 @@ function generateCookieBannerScript(project: any): string {
       visibility: visible;
     }
     
-    #cookie-floating-icon:active {
-      transform: translateY(0) scale(0.95);
-    }
-    
-    /* Responsive per iconcina */
     @media (max-width: 768px) {
+      #cookie-banner .cookie-banner-content {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      #cookie-banner .cookie-banner-buttons {
+        justify-content: center;
+        width: 100%;
+      }
+      
+      #cookie-banner .cookie-btn {
+        flex: 1;
+        min-width: auto;
+      }
+      
+      #cookie-banner .cookie-settings-panel {
+        margin: 10px;
+        border-radius: 8px;
+      }
+      
+      #cookie-banner .cookie-category-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      
+      #cookie-banner .cookie-switch {
+        align-self: flex-end;
+      }
+      
+      #cookie-banner .cookie-settings-buttons {
+        flex-direction: column;
+      }
+      
+      #cookie-banner .cookie-btn {
+        width: 100%;
+        margin: 5px 0;
+      }
+      
       #cookie-floating-icon {
         width: 50px;
         height: 50px;
@@ -1797,22 +910,22 @@ function generateCookieBannerScript(project: any): string {
       }
     }
   \`;
+  
   document.head.appendChild(style);
   
 })();`;
 }
 
-function generateFallbackScript(): string {
+function generateSimpleFallbackScript(): string {
   return `
-// Script di fallback per CookieYes
-console.warn('CookieYes: Configurazione progetto non trovata, uso script di fallback');
+// Script di fallback per Cookie Facile - fisiopoint.net
+console.warn('Cookie Facile: Configurazione non trovata, uso script di fallback');
 
-// Banner semplice di fallback
 (function() {
-  if (localStorage.getItem('cookie_consent_fallback')) return;
+  if (localStorage.getItem('fisiopoint_cookie_consent')) return;
   
   const banner = document.createElement('div');
-  banner.innerHTML = '<div style="background:#333;color:white;padding:15px;position:fixed;bottom:0;left:0;right:0;z-index:9999;text-align:center;">Questo sito utilizza cookie. <button onclick="localStorage.setItem(\\'cookie_consent_fallback\\',\\'true\\');this.parentElement.remove();" style="background:#4f46e5;color:white;border:none;padding:5px 15px;margin-left:10px;border-radius:3px;cursor:pointer;">Accetta</button></div>';
+  banner.innerHTML = '<div style="background:#333;color:white;padding:15px;position:fixed;bottom:0;left:0;right:0;z-index:9999;text-align:center;font-family:Arial,sans-serif;">Questo sito utilizza cookie per migliorare la tua esperienza. <button onclick="localStorage.setItem(\\'fisiopoint_cookie_consent\\',\\'true\\');this.parentElement.remove();" style="background:#4f46e5;color:white;border:none;padding:8px 16px;margin-left:10px;border-radius:4px;cursor:pointer;font-size:14px;">Accetta</button></div>';
   document.body.appendChild(banner);
 })();`;
 } 
