@@ -119,21 +119,7 @@ export default function BannerEditor() {
       const authData = await authResponse.json();
       setUser(authData.user);
 
-      // Prima prova a caricare da localStorage per velocità
-      const localStorageKey = `banner_config_${projectId}`;
-      const localConfig = localStorage.getItem(localStorageKey);
-      
-      if (localConfig) {
-        try {
-          const parsedConfig = JSON.parse(localConfig);
-          setConfig(parsedConfig);
-          console.log('Configurazione caricata da localStorage');
-        } catch (e) {
-          console.warn('Errore nel parsing della configurazione locale:', e);
-        }
-      }
-
-      // Carica il progetto dal database
+      // Carica il progetto dal database prima
       const projectResponse = await fetch(`/api/projects/${projectId}`);
       if (!projectResponse.ok) {
         if (projectResponse.status === 404) {
@@ -149,7 +135,7 @@ export default function BannerEditor() {
       const projectData = await projectResponse.json();
       setProject(projectData.project);
       
-      // Imposta configurazione banner dal database (se più recente o se non presente in localStorage)
+      // Prepara configurazione banner
       let bannerConfig = projectData.project.banner_config || getDefaultBannerConfig();
       
       // Assicura che la configurazione includa l'icona persistente
@@ -162,19 +148,57 @@ export default function BannerEditor() {
           textColor: '#ffffff'
         };
       }
+
+      console.log('🔍 Banner config dal database:', bannerConfig);
+
+      // Prova a caricare da localStorage per velocità
+      const localStorageKey = `banner_config_${projectId}`;
+      const localConfig = localStorage.getItem(localStorageKey);
       
-      // Se non c'era configurazione locale o se quella del database è diversa, aggiorna
-      if (!localConfig || JSON.stringify(bannerConfig) !== localConfig) {
+      if (localConfig) {
+        try {
+          const parsedConfig = JSON.parse(localConfig);
+          console.log('🔍 Config da localStorage:', parsedConfig);
+          
+          // Usa localStorage se più recente, altrimenti database
+          if (JSON.stringify(parsedConfig) !== JSON.stringify(bannerConfig)) {
+            console.log('📊 Differenze rilevate, uso database');
+            setConfig(bannerConfig);
+            localStorage.setItem(localStorageKey, JSON.stringify(bannerConfig));
+          } else {
+            console.log('✅ LocalStorage aggiornato, uso quello');
+            setConfig(parsedConfig);
+          }
+        } catch (e) {
+          console.warn('❌ Errore parsing localStorage, uso database:', e);
+          setConfig(bannerConfig);
+          localStorage.setItem(localStorageKey, JSON.stringify(bannerConfig));
+        }
+      } else {
+        console.log('📝 Nessun localStorage, uso database');
         setConfig(bannerConfig);
         localStorage.setItem(localStorageKey, JSON.stringify(bannerConfig));
-        console.log('Configurazione sincronizzata dal database');
       }
       
     } catch (error) {
-      console.error('Errore nel caricamento:', error);
+      console.error('❌ Errore nel caricamento:', error);
       setError('Errore interno del server');
+      
+      // Imposta configurazione di default anche in caso di errore
+      const defaultConfig = getDefaultBannerConfig();
+      setConfig(defaultConfig);
+      console.log('🔧 Impostata configurazione di default per errore');
     } finally {
       setLoading(false);
+      
+      // Controllo finale: se config è ancora null, imposta default
+      setTimeout(() => {
+        if (!config || !config.title) {
+          console.log('🚨 Config ancora null dopo caricamento, forzo default');
+          const defaultConfig = getDefaultBannerConfig();
+          setConfig(defaultConfig);
+        }
+      }, 100);
     }
   };
 
