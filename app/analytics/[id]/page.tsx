@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LocalProjectsManager, ProjectLocal } from '@/lib/localStorage';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ConsentRecord {
   id: string;
@@ -42,32 +42,84 @@ interface Analytics {
   }>;
 }
 
+interface Project {
+  id: string;
+  name: string;
+  domain: string;
+  language: string;
+  banner_config: any;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  role: 'admin' | 'client';
+}
+
 export default function AnalyticsPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.id as string;
   
-  const [project, setProject] = useState<ProjectLocal | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
 
   useEffect(() => {
-    const foundProject = LocalProjectsManager.getById(projectId);
-    if (foundProject) {
-      setProject(foundProject);
-      fetchAnalytics();
-    } else {
-      router.push('/dashboard');
-    }
-  }, [projectId, router, timeRange]);
+    checkAuthAndLoadData();
+  }, [projectId, timeRange]);
 
-  const fetchAnalytics = async () => {
+  const checkAuthAndLoadData = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Verifica autenticazione
+      const authResponse = await fetch('/api/auth/check');
+      if (!authResponse.ok) {
+        router.push('/login');
+        return;
+      }
+
+      const authData = await authResponse.json();
+      setUser(authData.user);
+
+      // Carica il progetto
+      const projectResponse = await fetch(`/api/projects/${projectId}`);
+      if (!projectResponse.ok) {
+        if (projectResponse.status === 404) {
+          setError('Progetto non trovato');
+        } else if (projectResponse.status === 403) {
+          setError('Non hai il permesso di accedere a questo progetto');
+        } else {
+          setError('Errore nel caricamento del progetto');
+        }
+        return;
+      }
+
+      const projectData = await projectResponse.json();
+      setProject(projectData.project);
+
+      // Carica analytics
+      await fetchAnalytics();
       
+    } catch (error) {
+      console.error('Errore nel caricamento:', error);
+      setError('Errore interno del server');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    try {
       const response = await fetch(`/api/analytics/${projectId}?range=${timeRange}`);
       
       if (!response.ok) {
@@ -77,15 +129,18 @@ export default function AnalyticsPage() {
       const data = await response.json();
       setAnalytics(data);
     } catch (err) {
+      console.error('Errore caricamento analytics:', err);
       setError(err instanceof Error ? err.message : 'Errore sconosciuto');
-    } finally {
-      setLoading(false);
     }
   };
 
   const exportData = async () => {
     try {
       const response = await fetch(`/api/analytics/${projectId}/export`);
+      if (!response.ok) {
+        throw new Error('Errore nell\'esportazione');
+      }
+      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -94,6 +149,7 @@ export default function AnalyticsPage() {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
+      console.error('Errore esportazione:', err);
       alert('Errore nell\'esportazione dei dati');
     }
   };
@@ -113,16 +169,48 @@ export default function AnalyticsPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-500 text-6xl mb-4">❌</div>
+          <div className="mb-4">
+            <svg className="h-16 w-16 text-red-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.232 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Errore</h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <Button onClick={() => router.push('/dashboard')}>
+          <Button 
+            onClick={() => router.push('/dashboard')}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
             Torna alla Dashboard
           </Button>
         </div>
       </div>
     );
   }
+
+  if (!project || !analytics) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Caricamento dati...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Dati per grafici
+  const pieData = [
+    { name: 'Accettato Tutto', value: analytics.acceptedAll, color: '#10b981' },
+    { name: 'Rifiutato Tutto', value: analytics.rejectedAll, color: '#ef4444' },
+    { name: 'Personalizzato', value: analytics.customized, color: '#f59e0b' },
+  ];
+
+  const categoryData = [
+    { name: 'Necessari', value: analytics.categoryStats.necessary, color: '#6b7280' },
+    { name: 'Analytics', value: analytics.categoryStats.analytics, color: '#3b82f6' },
+    { name: 'Marketing', value: analytics.categoryStats.marketing, color: '#8b5cf6' },
+    { name: 'Preferenze', value: analytics.categoryStats.preferences, color: '#10b981' },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
@@ -141,31 +229,28 @@ export default function AnalyticsPage() {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Analytics Cookie</h1>
                 <p className="text-sm text-gray-600">
-                  Progetto: <span className="font-semibold">{project?.name}</span> • 
-                  Dominio: <span className="font-semibold">{project?.domain}</span>
+                  Progetto: <span className="font-semibold">{project.name}</span> • 
+                  Dominio: <span className="font-semibold">{project.domain}</span>
                 </p>
               </div>
             </div>
             
             <div className="flex items-center gap-4">
-              {/* Time Range Selector */}
-              <div className="flex bg-gray-100 rounded-lg p-1">
-                {(['7d', '30d', '90d'] as const).map((range) => (
-                  <button
-                    key={range}
-                    onClick={() => setTimeRange(range)}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
-                      timeRange === range
-                        ? 'bg-white text-indigo-600 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    {range === '7d' ? '7 giorni' : range === '30d' ? '30 giorni' : '90 giorni'}
-                  </button>
-                ))}
+              {/* Selettore periodo */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Periodo:</span>
+                <select 
+                  value={timeRange} 
+                  onChange={(e) => setTimeRange(e.target.value as '7d' | '30d' | '90d')}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="7d">Ultimi 7 giorni</option>
+                  <option value="30d">Ultimi 30 giorni</option>
+                  <option value="90d">Ultimi 90 giorni</option>
+                </select>
               </div>
-              
-              <Button 
+
+              <Button
                 onClick={exportData}
                 variant="outline"
                 className="flex items-center gap-2"
@@ -178,196 +263,246 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Overview Cards */}
+        {/* Statistiche principali */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Visitatori Totali</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{analytics?.totalVisitors || 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Tasso Accettazione</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600">
-                {analytics?.acceptanceRate ? `${analytics.acceptanceRate.toFixed(1)}%` : '0%'}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Accettato Tutto</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-600">{analytics?.acceptedAll || 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Rifiutato Tutto</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-red-600">{analytics?.rejectedAll || 0}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Category Statistics */}
-          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                🍪 Statistiche per Categoria
-              </CardTitle>
-              <CardDescription>
-                Percentuale di accettazione per ogni categoria di cookie
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { name: 'Necessari', key: 'necessary', color: 'bg-gray-500' },
-                  { name: 'Analytics', key: 'analytics', color: 'bg-blue-500' },
-                  { name: 'Marketing', key: 'marketing', color: 'bg-green-500' },
-                  { name: 'Preferenze', key: 'preferences', color: 'bg-purple-500' }
-                ].map((category) => {
-                  const count = analytics?.categoryStats?.[category.key as keyof typeof analytics.categoryStats] || 0;
-                  const percentage = analytics?.totalVisitors ? (count / analytics.totalVisitors * 100) : 0;
-                  
-                  return (
-                    <div key={category.key} className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded ${category.color}`}></div>
-                      <div className="flex-1 flex justify-between items-center">
-                        <span className="font-medium">{category.name}</span>
-                        <div className="flex items-center gap-2">
-                          <div className="w-24 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${category.color}`}
-                              style={{ width: `${Math.min(percentage, 100)}%` }}
-                            />
-                          </div>
-                          <span className="text-sm text-gray-600 w-12">
-                            {percentage.toFixed(1)}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Consents */}
-          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                📋 Consensi Recenti
-              </CardTitle>
-              <CardDescription>
-                Ultimi consensi registrati
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {analytics?.recentConsents?.length ? (
-                  analytics.recentConsents.map((consent) => (
-                    <div key={consent.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium text-gray-900">
-                            {consent.domain}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {new Date(consent.timestamp).toLocaleDateString('it-IT', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                        </div>
-                        <div className="flex gap-1">
-                          {consent.necessary && <span className="text-xs bg-gray-200 px-2 py-1 rounded">Necessari</span>}
-                          {consent.analytics && <span className="text-xs bg-blue-200 px-2 py-1 rounded">Analytics</span>}
-                          {consent.marketing && <span className="text-xs bg-green-200 px-2 py-1 rounded">Marketing</span>}
-                          {consent.preferences && <span className="text-xs bg-purple-200 px-2 py-1 rounded">Preferenze</span>}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="text-4xl mb-2">📊</div>
-                    <p>Nessun consenso registrato ancora</p>
-                    <p className="text-sm mt-1">I consensi appariranno qui quando gli utenti interagiranno con il banner</p>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
                   </div>
-                )}
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Visitatori Totali</p>
+                  <p className="text-2xl font-bold text-gray-900">{analytics.totalVisitors.toLocaleString()}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Accettazioni</p>
+                  <p className="text-2xl font-bold text-gray-900">{analytics.acceptedAll.toLocaleString()}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Rifiuti</p>
+                  <p className="text-2xl font-bold text-gray-900">{analytics.rejectedAll.toLocaleString()}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Tasso Accettazione</p>
+                  <p className="text-2xl font-bold text-gray-900">{analytics.acceptanceRate.toFixed(1)}%</p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Daily Chart */}
-        <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg mt-8">
+        {/* Grafici */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Distribuzione Consensi */}
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                🥧 Distribuzione Consensi
+              </CardTitle>
+              <CardDescription>
+                Come gli utenti hanno risposto al banner cookie
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Categorie Cookie */}
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                📊 Consensi per Categoria
+              </CardTitle>
+              <CardDescription>
+                Quanti utenti hanno accettato ogni categoria
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={categoryData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#3b82f6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Andamento Temporale */}
+        <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg mb-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              📈 Trend Giornaliero
+              📈 Andamento Temporale
             </CardTitle>
             <CardDescription>
-              Andamento delle decisioni sui cookie negli ultimi {timeRange}
+              Consensi raccolti per giorno
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              {analytics?.dailyStats?.length ? (
-                <div className="w-full">
-                  <div className="flex items-end justify-between gap-2 h-48">
-                    {analytics.dailyStats.map((day, index) => (
-                      <div key={index} className="flex-1 flex flex-col items-center gap-1">
-                        <div className="w-full flex flex-col gap-1">
-                          <div 
-                            className="w-full bg-green-500 rounded-t min-h-[4px]"
-                            style={{ 
-                              height: `${Math.max(4, (day.accepted / Math.max(...analytics.dailyStats.map(d => d.accepted + d.rejected)) * 160))}px` 
-                            }}
-                          />
-                          <div 
-                            className="w-full bg-red-500 rounded-b min-h-[4px]"
-                            style={{ 
-                              height: `${Math.max(4, (day.rejected / Math.max(...analytics.dailyStats.map(d => d.accepted + d.rejected)) * 160))}px` 
-                            }}
-                          />
-                        </div>
-                        <span className="text-xs text-gray-600">
-                          {new Date(day.date).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })}
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={analytics.dailyStats}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="accepted" fill="#10b981" name="Accettati" />
+                  <Bar dataKey="rejected" fill="#ef4444" name="Rifiutati" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Consensi Recenti */}
+        <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              🕐 Consensi Recenti
+            </CardTitle>
+            <CardDescription>
+              Ultimi consensi registrati
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-3">Data</th>
+                    <th className="text-left p-3">Dominio</th>
+                    <th className="text-left p-3">Necessari</th>
+                    <th className="text-left p-3">Analytics</th>
+                    <th className="text-left p-3">Marketing</th>
+                    <th className="text-left p-3">Preferenze</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analytics.recentConsents.map((consent) => (
+                    <tr key={consent.id} className="border-b hover:bg-gray-50">
+                      <td className="p-3">
+                        {new Date(consent.created_at).toLocaleDateString('it-IT', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </td>
+                      <td className="p-3">{consent.domain}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          consent.necessary ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {consent.necessary ? 'Sì' : 'No'}
                         </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-center gap-4 mt-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-green-500 rounded"></div>
-                      <span className="text-sm">Accettati</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-red-500 rounded"></div>
-                      <span className="text-sm">Rifiutati</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <div className="text-4xl mb-2">📈</div>
-                  <p>Nessun dato disponibile</p>
-                  <p className="text-sm mt-1">I dati appariranno qui quando inizieranno ad arrivare i consensi</p>
+                      </td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          consent.analytics ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {consent.analytics ? 'Sì' : 'No'}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          consent.marketing ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {consent.marketing ? 'Sì' : 'No'}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          consent.preferences ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {consent.preferences ? 'Sì' : 'No'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {analytics.recentConsents.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">Nessun consenso registrato ancora</p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    I consensi appariranno qui una volta che gli utenti inizieranno a visitare il tuo sito
+                  </p>
                 </div>
               )}
             </div>

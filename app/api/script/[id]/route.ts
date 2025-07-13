@@ -8,11 +8,11 @@ export async function GET(
   try {
     const projectId = params.id;
 
-    // Cerca il progetto nel backup Turso
+    // Cerca il progetto nella tabella projects
     let project = null;
     try {
       const projectResult = await db.execute({
-        sql: 'SELECT * FROM project_backups WHERE id = ? ORDER BY backup_timestamp DESC LIMIT 1',
+        sql: 'SELECT * FROM projects WHERE id = ? AND is_active = 1',
         args: [projectId]
       });
 
@@ -20,19 +20,21 @@ export async function GET(
         const row = projectResult.rows[0];
         project = {
           id: row.id,
+          name: row.name,
           domain: row.domain,
           language: row.language,
-          banner_config: JSON.parse(row.banner_config as string)
+          banner_config: row.banner_config ? JSON.parse(row.banner_config as string) : null
         };
       }
     } catch (error) {
-      console.log('Progetto non trovato nel backup, uso configurazione di default');
+      console.log('Errore nel recupero del progetto:', error);
     }
 
-    // Se non trovato nel backup, usa configurazione di default
+    // Se non trovato, usa configurazione di default
     if (!project) {
       project = {
         id: projectId,
+        name: 'Progetto Default',
         domain: 'example.com',
         language: 'it',
         banner_config: {
@@ -67,31 +69,36 @@ export async function GET(
           }
         }
       };
+      
+      console.log('Usando configurazione di default per progetto:', projectId);
     }
 
-    // Genera lo script JavaScript completo
-    const generatedScript = generateCookieBannerScript(project);
+    // Genera lo script
+    const script = generateCookieBannerScript(project);
 
-    return new NextResponse(generatedScript, {
+    return new Response(script, {
       status: 200,
       headers: {
-        'Content-Type': 'application/javascript; charset=utf-8',
+        'Content-Type': 'application/javascript',
         'Cache-Control': 'public, max-age=300', // Cache per 5 minuti
         'Access-Control-Allow-Origin': '*',
-      },
+        'Access-Control-Allow-Methods': 'GET',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      }
     });
 
   } catch (error) {
-    console.error('Errore nella generazione script:', error);
+    console.error('Errore nella generazione dello script:', error);
     
-    // Restituisce uno script di fallback funzionante
+    // Ritorna script di fallback in caso di errore
     const fallbackScript = generateFallbackScript();
-    return new NextResponse(fallbackScript, {
+    return new Response(fallbackScript, {
       status: 200,
       headers: {
-        'Content-Type': 'application/javascript; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
-      },
+        'Content-Type': 'application/javascript',
+        'Cache-Control': 'public, max-age=60',
+        'Access-Control-Allow-Origin': '*'
+      }
     });
   }
 }

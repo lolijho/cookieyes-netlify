@@ -1,18 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LocalProjectsManager, ProjectLocal } from '@/lib/localStorage';
-import { TursoBackup } from '@/lib/tursoBackup';
 
 interface ColorPicker {
   label: string;
   value: string;
   onChange: (value: string) => void;
+}
+
+interface Project {
+  id: string;
+  name: string;
+  domain: string;
+  language: string;
+  banner_config: any;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  role: 'admin' | 'client';
 }
 
 const ColorPickerComponent = ({ label, value, onChange }: ColorPicker) => (
@@ -25,6 +41,8 @@ const ColorPickerComponent = ({ label, value, onChange }: ColorPicker) => (
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer hover:border-gray-300 transition-colors"
+          title={`Seleziona ${label}`}
+          aria-label={`Seleziona ${label}`}
         />
       </div>
       <Input
@@ -43,19 +61,54 @@ export default function BannerEditor() {
   const router = useRouter();
   const projectId = params.id as string;
   
-  const [project, setProject] = useState<ProjectLocal | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [config, setConfig] = useState<any>(null);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const foundProject = LocalProjectsManager.getById(projectId);
-    if (foundProject) {
-      setProject(foundProject);
+    checkAuthAndLoadProject();
+  }, [projectId]);
+
+  const checkAuthAndLoadProject = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Verifica autenticazione
+      const authResponse = await fetch('/api/auth/check');
+      if (!authResponse.ok) {
+        router.push('/login');
+        return;
+      }
+
+      const authData = await authResponse.json();
+      setUser(authData.user);
+
+      // Carica il progetto
+      const projectResponse = await fetch(`/api/projects/${projectId}`);
+      if (!projectResponse.ok) {
+        if (projectResponse.status === 404) {
+          setError('Progetto non trovato');
+        } else if (projectResponse.status === 403) {
+          setError('Non hai il permesso di accedere a questo progetto');
+        } else {
+          setError('Errore nel caricamento del progetto');
+        }
+        return;
+      }
+
+      const projectData = await projectResponse.json();
+      setProject(projectData.project);
       
-      // Assicurati che la configurazione includa l'icona persistente
-      let bannerConfig = foundProject.banner_config;
+      // Imposta configurazione banner
+      let bannerConfig = projectData.project.banner_config || getDefaultBannerConfig();
+      
+      // Assicura che la configurazione includa l'icona persistente
       if (!bannerConfig.floatingIcon) {
         bannerConfig.floatingIcon = {
           enabled: true,
@@ -64,15 +117,49 @@ export default function BannerEditor() {
           backgroundColor: '#4f46e5',
           textColor: '#ffffff'
         };
-        // Salva la configurazione aggiornata
-        LocalProjectsManager.update(projectId, { banner_config: bannerConfig });
       }
       
       setConfig(bannerConfig);
-    } else {
-      router.push('/dashboard');
+      
+    } catch (error) {
+      console.error('Errore nel caricamento:', error);
+      setError('Errore interno del server');
+    } finally {
+      setLoading(false);
     }
-  }, [projectId, router]);
+  };
+
+  const getDefaultBannerConfig = () => ({
+    layout: 'bottom',
+    colors: {
+      background: '#ffffff',
+      text: '#333333',
+      button_accept: '#4f46e5',
+      button_reject: '#6b7280',
+      button_settings: '#4f46e5'
+    },
+    texts: {
+      title: 'Utilizziamo i cookie',
+      description: 'Questo sito utilizza cookie per migliorare la tua esperienza di navigazione.',
+      accept_all: 'Accetta tutti',
+      reject_all: 'Rifiuta',
+      settings: 'Personalizza',
+      save_preferences: 'Salva Preferenze'
+    },
+    categories: {
+      necessary: true,
+      analytics: true,
+      marketing: true,
+      preferences: true
+    },
+    floatingIcon: {
+      enabled: true,
+      position: 'bottom-right',
+      text: '🍪',
+      backgroundColor: '#4f46e5',
+      textColor: '#ffffff'
+    }
+  });
 
   const updateConfig = (key: string, value: any) => {
     if (!config) return;
@@ -94,23 +181,70 @@ export default function BannerEditor() {
     
     setSaving(true);
     try {
-      LocalProjectsManager.update(projectId, { banner_config: config });
-      TursoBackup.forceBackup();
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          banner_config: config
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Errore nel salvataggio della configurazione');
+      }
+
       setSavedMessage('Configurazione salvata con successo!');
       setTimeout(() => setSavedMessage(''), 3000);
     } catch (error) {
       console.error('Errore nel salvaggio:', error);
+      setSavedMessage('Errore nel salvataggio');
+      setTimeout(() => setSavedMessage(''), 3000);
     } finally {
       setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Caricamento editor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4">
+            <svg className="h-16 w-16 text-red-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.232 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Errore</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button 
+            onClick={() => router.push('/dashboard')}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            Torna alla Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!project || !config) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Caricamento editor...</p>
+          <p className="text-gray-600">Caricamento configurazione...</p>
         </div>
       </div>
     );
@@ -295,8 +429,10 @@ export default function BannerEditor() {
             
             <div className="flex items-center gap-4">
               {savedMessage && (
-                <span className="text-green-600 font-medium text-sm">
-                  ✅ {savedMessage}
+                <span className={`text-sm font-medium ${
+                  savedMessage.includes('Errore') ? 'text-red-600' : 'text-green-600'
+                }`}>
+                  {savedMessage.includes('Errore') ? '❌' : '✅'} {savedMessage}
                 </span>
               )}
               
@@ -511,11 +647,13 @@ export default function BannerEditor() {
                       checked={true}
                       disabled
                       className="mr-3"
+                      id="necessary-cookies"
+                      aria-label="Cookie necessari (sempre attivi)"
                     />
-                    <div>
+                    <label htmlFor="necessary-cookies">
                       <span className="font-medium text-gray-700">🔒 Necessari</span>
                       <p className="text-xs text-gray-500">Sempre attivi</p>
-                    </div>
+                    </label>
                   </div>
                   <div className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <input
@@ -523,11 +661,13 @@ export default function BannerEditor() {
                       checked={config.categories.analytics}
                       onChange={(e) => updateConfig('categories.analytics', e.target.checked)}
                       className="mr-3"
+                      id="analytics-cookies"
+                      aria-label="Cookie analytics"
                     />
-                    <div>
+                    <label htmlFor="analytics-cookies">
                       <span className="font-medium text-gray-700">📊 Analytics</span>
                       <p className="text-xs text-gray-500">Statistiche uso</p>
-                    </div>
+                    </label>
                   </div>
                   <div className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <input
@@ -535,11 +675,13 @@ export default function BannerEditor() {
                       checked={config.categories.marketing}
                       onChange={(e) => updateConfig('categories.marketing', e.target.checked)}
                       className="mr-3"
+                      id="marketing-cookies"
+                      aria-label="Cookie marketing"
                     />
-                    <div>
+                    <label htmlFor="marketing-cookies">
                       <span className="font-medium text-gray-700">📢 Marketing</span>
                       <p className="text-xs text-gray-500">Pubblicità</p>
-                    </div>
+                    </label>
                   </div>
                   <div className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <input
@@ -547,11 +689,13 @@ export default function BannerEditor() {
                       checked={config.categories.preferences}
                       onChange={(e) => updateConfig('categories.preferences', e.target.checked)}
                       className="mr-3"
+                      id="preferences-cookies"
+                      aria-label="Cookie preferenze"
                     />
-                    <div>
+                    <label htmlFor="preferences-cookies">
                       <span className="font-medium text-gray-700">⚙️ Preferenze</span>
                       <p className="text-xs text-gray-500">Impostazioni</p>
-                    </div>
+                    </label>
                   </div>
                 </div>
               </CardContent>
@@ -579,6 +723,8 @@ export default function BannerEditor() {
                       checked={config.floatingIcon?.enabled || false}
                       onChange={(e) => updateConfig('floatingIcon.enabled', e.target.checked)}
                       className="sr-only peer"
+                      id="floating-icon-enabled"
+                      aria-label="Abilita icona persistente"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                   </label>
@@ -679,7 +825,7 @@ export default function BannerEditor() {
                 <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                   <h4 className="font-semibold text-gray-700 mb-2">🚀 Codice di Integrazione</h4>
                   <div className="bg-gray-900 text-green-400 p-3 rounded font-mono text-sm overflow-x-auto">
-                    {`<script src="${window.location.origin}/api/script/${projectId}" async></script>`}
+                    {`<script src="${typeof window !== 'undefined' ? window.location.origin : 'https://cookie-facile.com'}/api/script/${projectId}" async></script>`}
                   </div>
                   <p className="text-xs text-gray-600 mt-2">
                     Copia questo codice e incollalo nel tuo sito web prima del tag &lt;/body&gt;
