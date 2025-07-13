@@ -63,7 +63,37 @@ export default function BannerEditor() {
   
   const [user, setUser] = useState<User | null>(null);
   const [project, setProject] = useState<Project | null>(null);
-  const [config, setConfig] = useState<any>(null);
+  
+  // Inizializza config con configurazione di default per evitare anteprima bianca
+  const getDefaultBannerConfig = () => ({
+    layout: 'bottom',
+    backgroundColor: '#ffffff',
+    textColor: '#333333',
+    acceptButtonColor: '#4f46e5',
+    rejectButtonColor: '#6b7280',
+    settingsButtonColor: '#4f46e5',
+    title: 'Utilizziamo i cookie',
+    description: 'Questo sito utilizza cookie per migliorare la tua esperienza di navigazione.',
+    acceptButtonText: 'Accetta tutti',
+    rejectButtonText: 'Rifiuta',
+    settingsButtonText: 'Personalizza',
+    saveButtonText: 'Salva Preferenze',
+    categories: {
+      necessary: { enabled: true, name: 'Necessari', description: 'Sempre attivi' },
+      analytics: { enabled: true, name: 'Analytics', description: 'Statistiche sito' },
+      marketing: { enabled: true, name: 'Marketing', description: 'Pubblicità' },
+      preferences: { enabled: true, name: 'Preferenze', description: 'Personalizzazione' }
+    },
+    floatingIcon: {
+      enabled: true,
+      position: 'bottom-right',
+      text: '🍪',
+      backgroundColor: '#4f46e5',
+      textColor: '#ffffff'
+    }
+  });
+
+  const [config, setConfig] = useState<any>(getDefaultBannerConfig());
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
@@ -148,34 +178,6 @@ export default function BannerEditor() {
     }
   };
 
-  const getDefaultBannerConfig = () => ({
-    layout: 'bottom',
-    backgroundColor: '#ffffff',
-    textColor: '#333333',
-    acceptButtonColor: '#4f46e5',
-    rejectButtonColor: '#6b7280',
-    settingsButtonColor: '#4f46e5',
-    title: 'Utilizziamo i cookie',
-    description: 'Questo sito utilizza cookie per migliorare la tua esperienza di navigazione.',
-    acceptButtonText: 'Accetta tutti',
-    rejectButtonText: 'Rifiuta',
-    settingsButtonText: 'Personalizza',
-    saveButtonText: 'Salva Preferenze',
-    categories: {
-      necessary: { enabled: true, name: 'Necessari', description: 'Sempre attivi' },
-      analytics: { enabled: true, name: 'Analytics', description: 'Statistiche sito' },
-      marketing: { enabled: true, name: 'Marketing', description: 'Pubblicità' },
-      preferences: { enabled: true, name: 'Preferenze', description: 'Personalizzazione' }
-    },
-    floatingIcon: {
-      enabled: true,
-      position: 'bottom-right',
-      text: '🍪',
-      backgroundColor: '#4f46e5',
-      textColor: '#ffffff'
-    }
-  });
-
   const updateConfig = (key: string, value: any) => {
     if (!config) return;
     
@@ -207,7 +209,7 @@ export default function BannerEditor() {
   };
 
   const saveBannerConfig = async () => {
-    if (!project || !config) return;
+    if (!config) return;
     
     setSaving(true);
     
@@ -215,41 +217,74 @@ export default function BannerEditor() {
       // 1. Salva immediatamente in localStorage per velocità
       const localStorageKey = `banner_config_${projectId}`;
       localStorage.setItem(localStorageKey, JSON.stringify(config));
-      console.log('Configurazione salvata in localStorage');
+      console.log('✅ Configurazione salvata in localStorage');
       
       // Mostra feedback immediato
       setSavedMessage('Configurazione salvata localmente!');
       
-      // 2. Poi fa backup su database
-      const response = await fetch(`/api/projects/${projectId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          banner_config: config
-        })
-      });
+      // 2. Poi fa backup su database con gestione errori migliorata
+      try {
+        const response = await fetch(`/api/projects/${projectId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            banner_config: config
+          })
+        });
 
-      if (!response.ok) {
-        throw new Error('Errore nel backup su database');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          
+          if (response.status === 401) {
+            throw new Error('Sessione scaduta - Rieffettua il login');
+          } else if (response.status === 403) {
+            throw new Error('Non hai i permessi per modificare questo progetto');
+          } else if (response.status === 404) {
+            throw new Error('Progetto non trovato');
+          } else {
+            throw new Error(errorData.error || `Errore server: ${response.status}`);
+          }
+        }
+
+        const result = await response.json();
+        
+        // Aggiorna il messaggio di successo
+        setSavedMessage('✅ Configurazione salvata e sincronizzata!');
+        setTimeout(() => setSavedMessage(''), 3000);
+        
+        console.log('✅ Configurazione sincronizzata con database');
+        
+      } catch (dbError) {
+        console.error('❌ Errore nel backup su database:', dbError);
+        
+        // Gestione specifica degli errori di sincronizzazione
+        if (dbError.message.includes('Sessione scaduta')) {
+          setSavedMessage('⚠️ Sessione scaduta - Rieffettua il login');
+          setTimeout(() => {
+            router.push('/login');
+          }, 2000);
+        } else if (dbError.message.includes('permessi')) {
+          setSavedMessage('⚠️ Permessi insufficienti per salvare');
+        } else {
+          setSavedMessage('⚠️ Salvato localmente - Errore sincronizzazione database');
+        }
+        
+        setTimeout(() => setSavedMessage(''), 5000);
+        
+        // Log dettagliato per debug
+        console.warn('Configurazione salvata solo localmente:', {
+          error: dbError.message,
+          projectId,
+          timestamp: new Date().toISOString()
+        });
       }
-
-      // Aggiorna il messaggio di successo
-      setSavedMessage('Configurazione salvata e sincronizzata!');
-      setTimeout(() => setSavedMessage(''), 3000);
-      
-      console.log('Configurazione sincronizzata con database');
       
     } catch (error) {
-      console.error('Errore nel backup su database:', error);
-      
-      // Anche se il database fallisce, localStorage è aggiornato
-      setSavedMessage('Salvato localmente - Errore sincronizzazione database');
+      console.error('❌ Errore critico nel salvataggio:', error);
+      setSavedMessage('❌ Errore nel salvataggio - Riprova');
       setTimeout(() => setSavedMessage(''), 4000);
-      
-      // Potresti implementare una retry logic qui
-      console.warn('Configurazione salvata solo localmente, sync database fallita');
     } finally {
       setSaving(false);
     }
@@ -299,13 +334,35 @@ export default function BannerEditor() {
     );
   }
 
-  const BannerPreview = () => (
-    <div className={`banner-preview-container ${previewMode === 'mobile' ? 'mobile-view' : 'desktop-view'}`}>
-      <div 
-        className="cookie-banner-preview"
-        style={{
-          background: config.backgroundColor,
-          color: config.textColor,
+  const BannerPreview = () => {
+    // Protezione per evitare anteprima bianca se config non è caricato
+    if (!config) {
+      return (
+        <div className="banner-preview-container">
+          <div className="cookie-banner-preview" style={{
+            background: '#ffffff',
+            color: '#333333',
+            padding: '24px',
+            borderRadius: '12px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+            textAlign: 'center'
+          }}>
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`banner-preview-container ${previewMode === 'mobile' ? 'mobile-view' : 'desktop-view'}`}>
+        <div 
+          className="cookie-banner-preview"
+          style={{
+            background: config.backgroundColor || '#ffffff',
+            color: config.textColor || '#333333',
           padding: '24px',
           borderRadius: '12px',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
@@ -451,7 +508,8 @@ export default function BannerEditor() {
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
