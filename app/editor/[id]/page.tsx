@@ -89,7 +89,21 @@ export default function BannerEditor() {
       const authData = await authResponse.json();
       setUser(authData.user);
 
-      // Carica il progetto
+      // Prima prova a caricare da localStorage per velocità
+      const localStorageKey = `banner_config_${projectId}`;
+      const localConfig = localStorage.getItem(localStorageKey);
+      
+      if (localConfig) {
+        try {
+          const parsedConfig = JSON.parse(localConfig);
+          setConfig(parsedConfig);
+          console.log('Configurazione caricata da localStorage');
+        } catch (e) {
+          console.warn('Errore nel parsing della configurazione locale:', e);
+        }
+      }
+
+      // Carica il progetto dal database
       const projectResponse = await fetch(`/api/projects/${projectId}`);
       if (!projectResponse.ok) {
         if (projectResponse.status === 404) {
@@ -105,7 +119,7 @@ export default function BannerEditor() {
       const projectData = await projectResponse.json();
       setProject(projectData.project);
       
-      // Imposta configurazione banner
+      // Imposta configurazione banner dal database (se più recente o se non presente in localStorage)
       let bannerConfig = projectData.project.banner_config || getDefaultBannerConfig();
       
       // Assicura che la configurazione includa l'icona persistente
@@ -119,7 +133,12 @@ export default function BannerEditor() {
         };
       }
       
-      setConfig(bannerConfig);
+      // Se non c'era configurazione locale o se quella del database è diversa, aggiorna
+      if (!localConfig || JSON.stringify(bannerConfig) !== localConfig) {
+        setConfig(bannerConfig);
+        localStorage.setItem(localStorageKey, JSON.stringify(bannerConfig));
+        console.log('Configurazione sincronizzata dal database');
+      }
       
     } catch (error) {
       console.error('Errore nel caricamento:', error);
@@ -131,26 +150,22 @@ export default function BannerEditor() {
 
   const getDefaultBannerConfig = () => ({
     layout: 'bottom',
-    colors: {
-      background: '#ffffff',
-      text: '#333333',
-      button_accept: '#4f46e5',
-      button_reject: '#6b7280',
-      button_settings: '#4f46e5'
-    },
-    texts: {
-      title: 'Utilizziamo i cookie',
-      description: 'Questo sito utilizza cookie per migliorare la tua esperienza di navigazione.',
-      accept_all: 'Accetta tutti',
-      reject_all: 'Rifiuta',
-      settings: 'Personalizza',
-      save_preferences: 'Salva Preferenze'
-    },
+    backgroundColor: '#ffffff',
+    textColor: '#333333',
+    acceptButtonColor: '#4f46e5',
+    rejectButtonColor: '#6b7280',
+    settingsButtonColor: '#4f46e5',
+    title: 'Utilizziamo i cookie',
+    description: 'Questo sito utilizza cookie per migliorare la tua esperienza di navigazione.',
+    acceptButtonText: 'Accetta tutti',
+    rejectButtonText: 'Rifiuta',
+    settingsButtonText: 'Personalizza',
+    saveButtonText: 'Salva Preferenze',
     categories: {
-      necessary: true,
-      analytics: true,
-      marketing: true,
-      preferences: true
+      necessary: { enabled: true, name: 'Necessari', description: 'Sempre attivi' },
+      analytics: { enabled: true, name: 'Analytics', description: 'Statistiche sito' },
+      marketing: { enabled: true, name: 'Marketing', description: 'Pubblicità' },
+      preferences: { enabled: true, name: 'Preferenze', description: 'Personalizzazione' }
     },
     floatingIcon: {
       enabled: true,
@@ -164,23 +179,48 @@ export default function BannerEditor() {
   const updateConfig = (key: string, value: any) => {
     if (!config) return;
     
-    const newConfig = { ...config };
-    const keys = key.split('.');
-    let current = newConfig;
+    let newConfig = { ...config };
     
-    for (let i = 0; i < keys.length - 1; i++) {
-      current = current[keys[i]];
+    // Gestione delle proprietà annidate (es. categories.analytics.enabled)
+    if (key.includes('.')) {
+      const keys = key.split('.');
+      let current = newConfig;
+      
+      // Naviga fino al penultimo livello
+      for (let i = 0; i < keys.length - 1; i++) {
+        if (!current[keys[i]]) current[keys[i]] = {};
+        current = current[keys[i]];
+      }
+      
+      // Imposta il valore finale
+      current[keys[keys.length - 1]] = value;
+    } else {
+      // Proprietà di primo livello
+      newConfig[key] = value;
     }
-    current[keys[keys.length - 1]] = value;
     
     setConfig(newConfig);
+    
+    // Salva immediatamente in localStorage per velocità
+    const localStorageKey = `banner_config_${projectId}`;
+    localStorage.setItem(localStorageKey, JSON.stringify(newConfig));
   };
 
   const saveBannerConfig = async () => {
     if (!project || !config) return;
     
     setSaving(true);
+    
     try {
+      // 1. Salva immediatamente in localStorage per velocità
+      const localStorageKey = `banner_config_${projectId}`;
+      localStorage.setItem(localStorageKey, JSON.stringify(config));
+      console.log('Configurazione salvata in localStorage');
+      
+      // Mostra feedback immediato
+      setSavedMessage('Configurazione salvata localmente!');
+      
+      // 2. Poi fa backup su database
       const response = await fetch(`/api/projects/${projectId}`, {
         method: 'PUT',
         headers: {
@@ -192,15 +232,24 @@ export default function BannerEditor() {
       });
 
       if (!response.ok) {
-        throw new Error('Errore nel salvataggio della configurazione');
+        throw new Error('Errore nel backup su database');
       }
 
-      setSavedMessage('Configurazione salvata con successo!');
+      // Aggiorna il messaggio di successo
+      setSavedMessage('Configurazione salvata e sincronizzata!');
       setTimeout(() => setSavedMessage(''), 3000);
+      
+      console.log('Configurazione sincronizzata con database');
+      
     } catch (error) {
-      console.error('Errore nel salvaggio:', error);
-      setSavedMessage('Errore nel salvataggio');
-      setTimeout(() => setSavedMessage(''), 3000);
+      console.error('Errore nel backup su database:', error);
+      
+      // Anche se il database fallisce, localStorage è aggiornato
+      setSavedMessage('Salvato localmente - Errore sincronizzazione database');
+      setTimeout(() => setSavedMessage(''), 4000);
+      
+      // Potresti implementare una retry logic qui
+      console.warn('Configurazione salvata solo localmente, sync database fallita');
     } finally {
       setSaving(false);
     }
@@ -255,8 +304,8 @@ export default function BannerEditor() {
       <div 
         className="cookie-banner-preview"
         style={{
-          background: config.colors.background,
-          color: config.colors.text,
+          background: config.backgroundColor,
+          color: config.textColor,
           padding: '24px',
           borderRadius: '12px',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
@@ -290,7 +339,7 @@ export default function BannerEditor() {
               fontWeight: '600',
               lineHeight: '1.3'
             }}>
-              {config.texts.title}
+              {config.title}
             </h3>
             <p style={{ 
               margin: '0', 
@@ -298,7 +347,7 @@ export default function BannerEditor() {
               lineHeight: '1.5',
               fontSize: '14px'
             }}>
-              {config.texts.description}
+              {config.description}
             </p>
           </div>
           <div className="cookie-banner-buttons" style={{ 
@@ -308,7 +357,7 @@ export default function BannerEditor() {
             alignItems: 'center'
           }}>
             <button style={{
-              background: config.colors.button_accept,
+              background: config.acceptButtonColor,
               color: 'white',
               border: 'none',
               padding: '10px 20px',
@@ -319,10 +368,10 @@ export default function BannerEditor() {
               minWidth: '120px',
               transition: 'all 0.2s ease'
             }}>
-              {config.texts.accept_all}
+              {config.acceptButtonText}
             </button>
             <button style={{
-              background: config.colors.button_reject,
+              background: config.rejectButtonColor,
               color: 'white',
               border: 'none',
               padding: '10px 20px',
@@ -332,12 +381,12 @@ export default function BannerEditor() {
               cursor: 'pointer',
               minWidth: '120px'
             }}>
-              {config.texts.reject_all}
+              {config.rejectButtonText}
             </button>
             <button style={{
               background: 'transparent',
-              color: config.colors.button_settings,
-              border: `2px solid ${config.colors.button_settings}`,
+              color: config.settingsButtonColor,
+              border: `2px solid ${config.settingsButtonColor}`,
               padding: '8px 18px',
               borderRadius: '8px',
               fontSize: '14px',
@@ -345,7 +394,7 @@ export default function BannerEditor() {
               cursor: 'pointer',
               minWidth: '120px'
             }}>
-              {config.texts.settings}
+              {config.settingsButtonText}
             </button>
           </div>
         </div>
@@ -531,28 +580,28 @@ export default function BannerEditor() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <ColorPickerComponent
                     label="Sfondo Banner"
-                    value={config.colors.background}
-                    onChange={(value) => updateConfig('colors.background', value)}
+                    value={config.backgroundColor}
+                    onChange={(value) => updateConfig('backgroundColor', value)}
                   />
                   <ColorPickerComponent
                     label="Colore Testo"
-                    value={config.colors.text}
-                    onChange={(value) => updateConfig('colors.text', value)}
+                    value={config.textColor}
+                    onChange={(value) => updateConfig('textColor', value)}
                   />
                   <ColorPickerComponent
                     label="Pulsante Accetta"
-                    value={config.colors.button_accept}
-                    onChange={(value) => updateConfig('colors.button_accept', value)}
+                    value={config.acceptButtonColor}
+                    onChange={(value) => updateConfig('acceptButtonColor', value)}
                   />
                   <ColorPickerComponent
                     label="Pulsante Rifiuta"
-                    value={config.colors.button_reject}
-                    onChange={(value) => updateConfig('colors.button_reject', value)}
+                    value={config.rejectButtonColor}
+                    onChange={(value) => updateConfig('rejectButtonColor', value)}
                   />
                   <ColorPickerComponent
                     label="Pulsante Impostazioni"
-                    value={config.colors.button_settings}
-                    onChange={(value) => updateConfig('colors.button_settings', value)}
+                    value={config.settingsButtonColor}
+                    onChange={(value) => updateConfig('settingsButtonColor', value)}
                   />
                 </div>
               </CardContent>
@@ -572,8 +621,8 @@ export default function BannerEditor() {
                 <div>
                   <Label className="text-sm font-semibold text-gray-700">Titolo Principale</Label>
                   <Input
-                    value={config.texts.title}
-                    onChange={(e) => updateConfig('texts.title', e.target.value)}
+                    value={config.title}
+                    onChange={(e) => updateConfig('title', e.target.value)}
                     placeholder="Utilizziamo i cookie"
                     className="mt-2"
                   />
@@ -581,8 +630,8 @@ export default function BannerEditor() {
                 <div>
                   <Label className="text-sm font-semibold text-gray-700">Descrizione</Label>
                   <textarea
-                    value={config.texts.description}
-                    onChange={(e) => updateConfig('texts.description', e.target.value)}
+                    value={config.description}
+                    onChange={(e) => updateConfig('description', e.target.value)}
                     placeholder="Questo sito utilizza cookie per migliorare la tua esperienza di navigazione."
                     rows={3}
                     className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -592,8 +641,8 @@ export default function BannerEditor() {
                   <div>
                     <Label className="text-sm font-semibold text-gray-700">Testo "Accetta"</Label>
                     <Input
-                      value={config.texts.accept_all}
-                      onChange={(e) => updateConfig('texts.accept_all', e.target.value)}
+                      value={config.acceptButtonText}
+                      onChange={(e) => updateConfig('acceptButtonText', e.target.value)}
                       placeholder="Accetta tutti"
                       className="mt-2"
                     />
@@ -601,8 +650,8 @@ export default function BannerEditor() {
                   <div>
                     <Label className="text-sm font-semibold text-gray-700">Testo "Rifiuta"</Label>
                     <Input
-                      value={config.texts.reject_all}
-                      onChange={(e) => updateConfig('texts.reject_all', e.target.value)}
+                      value={config.rejectButtonText}
+                      onChange={(e) => updateConfig('rejectButtonText', e.target.value)}
                       placeholder="Rifiuta"
                       className="mt-2"
                     />
@@ -610,8 +659,8 @@ export default function BannerEditor() {
                   <div>
                     <Label className="text-sm font-semibold text-gray-700">Testo "Personalizza"</Label>
                     <Input
-                      value={config.texts.settings}
-                      onChange={(e) => updateConfig('texts.settings', e.target.value)}
+                      value={config.settingsButtonText}
+                      onChange={(e) => updateConfig('settingsButtonText', e.target.value)}
                       placeholder="Personalizza"
                       className="mt-2"
                     />
@@ -619,8 +668,8 @@ export default function BannerEditor() {
                   <div>
                     <Label className="text-sm font-semibold text-gray-700">Testo "Salva"</Label>
                     <Input
-                      value={config.texts.save_preferences}
-                      onChange={(e) => updateConfig('texts.save_preferences', e.target.value)}
+                      value={config.saveButtonText}
+                      onChange={(e) => updateConfig('saveButtonText', e.target.value)}
                       placeholder="Salva Preferenze"
                       className="mt-2"
                     />
@@ -658,8 +707,8 @@ export default function BannerEditor() {
                   <div className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <input
                       type="checkbox"
-                      checked={config.categories.analytics}
-                      onChange={(e) => updateConfig('categories.analytics', e.target.checked)}
+                      checked={config.categories.analytics.enabled}
+                      onChange={(e) => updateConfig('categories.analytics.enabled', e.target.checked)}
                       className="mr-3"
                       id="analytics-cookies"
                       aria-label="Cookie analytics"
@@ -672,8 +721,8 @@ export default function BannerEditor() {
                   <div className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <input
                       type="checkbox"
-                      checked={config.categories.marketing}
-                      onChange={(e) => updateConfig('categories.marketing', e.target.checked)}
+                      checked={config.categories.marketing.enabled}
+                      onChange={(e) => updateConfig('categories.marketing.enabled', e.target.checked)}
                       className="mr-3"
                       id="marketing-cookies"
                       aria-label="Cookie marketing"
@@ -686,8 +735,8 @@ export default function BannerEditor() {
                   <div className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <input
                       type="checkbox"
-                      checked={config.categories.preferences}
-                      onChange={(e) => updateConfig('categories.preferences', e.target.checked)}
+                      checked={config.categories.preferences.enabled}
+                      onChange={(e) => updateConfig('categories.preferences.enabled', e.target.checked)}
                       className="mr-3"
                       id="preferences-cookies"
                       aria-label="Cookie preferenze"
