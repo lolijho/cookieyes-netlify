@@ -335,8 +335,9 @@ export default function BannerEditor() {
   }
 
   const BannerPreview = () => {
-    // Protezione per evitare anteprima bianca se config non è caricato
-    if (!config) {
+    // Protezione robusta per evitare anteprima bianca
+    if (!config || !config.title || !config.description) {
+      console.log('🔍 Config non valido per anteprima:', config);
       return (
         <div className="banner-preview-container">
           <div className="cookie-banner-preview" style={{
@@ -345,39 +346,63 @@ export default function BannerEditor() {
             padding: '24px',
             borderRadius: '12px',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-            textAlign: 'center'
+            textAlign: 'center',
+            border: '2px dashed #e5e7eb'
           }}>
             <div className="animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto mb-4"></div>
+              <div className="flex gap-2 justify-center">
+                <div className="h-8 bg-blue-200 rounded w-20"></div>
+                <div className="h-8 bg-gray-200 rounded w-16"></div>
+                <div className="h-8 bg-gray-200 rounded w-20"></div>
+              </div>
             </div>
+            <p className="text-xs text-gray-500 mt-4">Caricamento configurazione...</p>
           </div>
         </div>
       );
     }
+
+    // Valori di fallback per evitare undefined
+    const safeConfig = {
+      backgroundColor: config.backgroundColor || '#ffffff',
+      textColor: config.textColor || '#333333',
+      title: config.title || 'Utilizziamo i cookie',
+      description: config.description || 'Questo sito utilizza cookie per migliorare la tua esperienza.',
+      acceptButtonText: config.acceptButtonText || 'Accetta tutti',
+      rejectButtonText: config.rejectButtonText || 'Rifiuta',
+      settingsButtonText: config.settingsButtonText || 'Personalizza',
+      acceptButtonColor: config.acceptButtonColor || '#4f46e5',
+      rejectButtonColor: config.rejectButtonColor || '#6b7280',
+      settingsButtonColor: config.settingsButtonColor || '#4f46e5',
+      layout: config.layout || 'bottom'
+    };
+
+    console.log('🎨 Rendering anteprima con safeConfig:', safeConfig);
 
     return (
       <div className={`banner-preview-container ${previewMode === 'mobile' ? 'mobile-view' : 'desktop-view'}`}>
         <div 
           className="cookie-banner-preview"
           style={{
-            background: config.backgroundColor || '#ffffff',
-            color: config.textColor || '#333333',
+            background: safeConfig.backgroundColor,
+            color: safeConfig.textColor,
           padding: '24px',
           borderRadius: '12px',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
           fontSize: '14px',
           lineHeight: '1.5',
-          border: `3px solid ${config.layout === 'top' ? '#e5e7eb' : '#e5e7eb'}`,
-          borderTop: config.layout === 'bottom' ? '3px solid #e5e7eb' : 'none',
-          borderBottom: config.layout === 'top' ? '3px solid #e5e7eb' : 'none',
+          border: `3px solid ${safeConfig.layout === 'top' ? '#e5e7eb' : '#e5e7eb'}`,
+          borderTop: safeConfig.layout === 'bottom' ? '3px solid #e5e7eb' : 'none',
+          borderBottom: safeConfig.layout === 'top' ? '3px solid #e5e7eb' : 'none',
           position: 'relative'
         }}
       >
         <div className="position-indicator">
           <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded-full">
-            Posizione: {config.layout === 'top' ? 'Alto' : 'Basso'}
+            Posizione: {safeConfig.layout === 'top' ? 'Alto' : 'Basso'}
           </span>
         </div>
         
@@ -396,7 +421,7 @@ export default function BannerEditor() {
               fontWeight: '600',
               lineHeight: '1.3'
             }}>
-              {config.title}
+              {safeConfig.title}
             </h3>
             <p style={{ 
               margin: '0', 
@@ -404,7 +429,7 @@ export default function BannerEditor() {
               lineHeight: '1.5',
               fontSize: '14px'
             }}>
-              {config.description}
+              {safeConfig.description}
             </p>
           </div>
           <div className="cookie-banner-buttons" style={{ 
@@ -414,7 +439,7 @@ export default function BannerEditor() {
             alignItems: 'center'
           }}>
             <button style={{
-              background: config.acceptButtonColor,
+              background: safeConfig.acceptButtonColor,
               color: 'white',
               border: 'none',
               padding: '10px 20px',
@@ -425,10 +450,10 @@ export default function BannerEditor() {
               minWidth: '120px',
               transition: 'all 0.2s ease'
             }}>
-              {config.acceptButtonText}
+              {safeConfig.acceptButtonText}
             </button>
             <button style={{
-              background: config.rejectButtonColor,
+              background: safeConfig.rejectButtonColor,
               color: 'white',
               border: 'none',
               padding: '10px 20px',
@@ -438,12 +463,12 @@ export default function BannerEditor() {
               cursor: 'pointer',
               minWidth: '120px'
             }}>
-              {config.rejectButtonText}
+              {safeConfig.rejectButtonText}
             </button>
             <button style={{
               background: 'transparent',
-              color: config.settingsButtonColor,
-              border: `2px solid ${config.settingsButtonColor}`,
+              color: safeConfig.settingsButtonColor,
+              border: `2px solid ${safeConfig.settingsButtonColor}`,
               padding: '8px 18px',
               borderRadius: '8px',
               fontSize: '14px',
@@ -451,7 +476,7 @@ export default function BannerEditor() {
               cursor: 'pointer',
               minWidth: '120px'
             }}>
-              {config.settingsButtonText}
+              {safeConfig.settingsButtonText}
             </button>
           </div>
         </div>
