@@ -27,6 +27,15 @@ export async function middleware(request: NextRequest) {
     return response
   }
   
+  // Bypass per l'API di inizializzazione database
+  if (pathname.startsWith('/api/init-db')) {
+    const response = NextResponse.next()
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    return response
+  }
+  
   // Per le altre API, verifica autenticazione
   if (pathname.startsWith('/api/')) {
     const user = await AuthManager.getAuthenticatedUser(request)
