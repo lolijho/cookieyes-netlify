@@ -1,4 +1,4 @@
-// File: /Users/cuweb/Desktop/cookiefacile/cookie/app/dashboard/page.tsx
+// File: /Users/cuweb/Desktop/cookie 14 luglio/cookie-2/app/dashboard/page.tsx
 import * as entry from '../../../../app/dashboard/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

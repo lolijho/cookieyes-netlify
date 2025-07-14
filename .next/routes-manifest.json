@@ -15,6 +15,14 @@
   "headers": [],
   "dynamicRoutes": [
     {
+      "page": "/admin/users/[id]",
+      "regex": "^/admin/users/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/admin/users/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/analytics/[id]",
       "regex": "^/analytics/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -31,6 +39,14 @@
       "namedRegex": "^/api/admin/users/(?<nxtPid>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/api/admin/users/[id]/verify",
+      "regex": "^/api/admin/users/([^/]+?)/verify(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/users/(?<nxtPid>[^/]+?)/verify(?:/)?$"
+    },
+    {
       "page": "/api/analytics/[id]",
       "regex": "^/api/analytics/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -45,6 +61,14 @@
         "nxtPid": "nxtPid"
       },
       "namedRegex": "^/api/analytics/(?<nxtPid>[^/]+?)/export(?:/)?$"
+    },
+    {
+      "page": "/api/plans/[id]",
+      "regex": "^/api/plans/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/plans/(?<nxtPid>[^/]+?)(?:/)?$"
     },
     {
       "page": "/api/projects/[id]",
@@ -89,6 +113,12 @@
       "regex": "^/admin(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/admin(?:/)?$"
+    },
+    {
+      "page": "/client-dashboard",
+      "regex": "^/client\\-dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/client\\-dashboard(?:/)?$"
     },
     {
       "page": "/dashboard",

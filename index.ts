@@ -1,12 +1,9 @@
-import { drizzle } from 'drizzle-orm/libsql';
-import { createClient } from '@libsql/client';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import * as schema from './schema';
 
-// Configurazione client database
-const client = createClient({
-  url: process.env.DATABASE_URL || 'file:./local.db',
-  authToken: process.env.DATABASE_AUTH_TOKEN,
-});
+// Configurazione client database PostgreSQL
+const client = postgres(process.env.DATABASE_URL || 'postgresql://localhost:5432/cookieyes');
 
 // Istanza database con schema
 export const db = drizzle(client, { schema });
