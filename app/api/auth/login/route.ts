@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import postgres from 'postgres';
+import { db } from '../../../../db';
+import * as schema from '../../../../schema';
+import { eq, and } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
@@ -17,17 +19,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sql = postgres(process.env.DATABASE_URL || 'postgresql://localhost:5432/cookieyes');
-
     // Cerca l'utente nel database
-    const userResult = await sql`
-      SELECT * FROM users 
-      WHERE email = ${email.toLowerCase()} 
-      AND is_active = true
-    `;
+    const userResult = await db
+      .select()
+      .from(schema.users)
+      .where(
+        and(
+          eq(schema.users.email, email.toLowerCase()),
+          eq(schema.users.isActive, true)
+        )
+      )
+      .limit(1);
 
     if (userResult.length === 0) {
-      await sql.end();
       return NextResponse.json(
         { success: false, error: 'Credenziali non valide' },
         { status: 401 }
@@ -37,17 +41,18 @@ export async function POST(request: NextRequest) {
     const user = userResult[0];
 
     // Verifica password
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
     if (!isValidPassword) {
       // Log tentativo login fallito
-      await sql`
-        INSERT INTO audit_logs (user_id, action, resource, details, ip_address, user_agent) 
-        VALUES (${user.id}, 'login_failed', 'auth', ${JSON.stringify({ reason: 'invalid_password' })}, 
-                ${request.headers.get('x-forwarded-for') || 'unknown'}, 
-                ${request.headers.get('user-agent') || 'unknown'})
-      `;
+      await db.insert(schema.auditLogs).values({
+        userId: user.id,
+        action: 'login_failed',
+        resource: 'auth',
+        details: JSON.stringify({ reason: 'invalid_password' }),
+        ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+        userAgent: request.headers.get('user-agent') || 'unknown'
+      });
 
-      await sql.end();
       return NextResponse.json(
         { success: false, error: 'Credenziali non valide' },
         { status: 401 }
@@ -60,30 +65,32 @@ export async function POST(request: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + 7); // Sessione valida 7 giorni
 
     // Salva sessione nel database
-    await sql`
-      INSERT INTO sessions (id, user_id, expires_at, ip_address, user_agent) 
-      VALUES (${sessionId}, ${user.id}, ${expiresAt}, 
-              ${request.headers.get('x-forwarded-for') || 'unknown'}, 
-              ${request.headers.get('user-agent') || 'unknown'})
-    `;
+    await db.insert(schema.sessions).values({
+      id: sessionId,
+      userId: user.id,
+      expiresAt: expiresAt,
+      ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+      userAgent: request.headers.get('user-agent') || 'unknown'
+    });
 
     // Aggiorna ultimo login
-    await sql`
-      UPDATE users SET last_login = ${new Date()} WHERE id = ${user.id}
-    `;
+    await db
+      .update(schema.users)
+      .set({ lastLogin: new Date() })
+      .where(eq(schema.users.id, user.id));
 
     // Log login riuscito
-    await sql`
-      INSERT INTO audit_logs (user_id, action, resource, details, ip_address, user_agent) 
-      VALUES (${user.id}, 'login_success', 'auth', ${JSON.stringify({ session_id: sessionId })}, 
-              ${request.headers.get('x-forwarded-for') || 'unknown'}, 
-              ${request.headers.get('user-agent') || 'unknown'})
-    `;
-
-    await sql.end();
+    await db.insert(schema.auditLogs).values({
+      userId: user.id,
+      action: 'login_success',
+      resource: 'auth',
+      details: JSON.stringify({ session_id: sessionId }),
+      ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+      userAgent: request.headers.get('user-agent') || 'unknown'
+    });
 
     // Prepara risposta senza password
-    const { password_hash, ...userWithoutPassword } = user;
+    const { passwordHash, ...userWithoutPassword } = user;
 
     const response = {
       success: true,
