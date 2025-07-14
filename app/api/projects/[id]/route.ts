@@ -43,18 +43,49 @@ export async function GET(
       );
     }
 
+    // Default banner config se non presente
+    const defaultBannerConfig = {
+      layout: 'bottom',
+      backgroundColor: '#ffffff',
+      textColor: '#333333',
+      acceptButtonColor: '#4f46e5',
+      rejectButtonColor: '#6b7280',
+      settingsButtonColor: '#4f46e5',
+      title: 'Utilizziamo i cookie',
+      description: 'Questo sito utilizza cookie per migliorare la tua esperienza di navigazione.',
+      acceptButtonText: 'Accetta tutti',
+      rejectButtonText: 'Rifiuta',
+      settingsButtonText: 'Personalizza',
+      saveButtonText: 'Salva Preferenze',
+      categories: {
+        necessary: { enabled: true, name: 'Necessari', description: 'Sempre attivi' },
+        analytics: { enabled: true, name: 'Analytics', description: 'Statistiche sito' },
+        marketing: { enabled: true, name: 'Marketing', description: 'Pubblicità' },
+        preferences: { enabled: true, name: 'Preferenze', description: 'Personalizzazione' }
+      },
+      floatingIcon: {
+        enabled: true,
+        position: 'bottom-right',
+        text: '🍪',
+        backgroundColor: '#4f46e5',
+        textColor: '#ffffff'
+      }
+    };
+
     // Formatta e restituisce il progetto
     const formattedProject = {
       id: project.id,
       name: project.name,
       domain: project.domain,
       language: project.language,
-      banner_config: project.banner_config ? JSON.parse(project.banner_config) : null,
+      banner_config: project.banner_config ? JSON.parse(project.banner_config) : defaultBannerConfig,
       is_active: Boolean(project.is_active),
       created_at: project.created_at,
       updated_at: project.updated_at,
       user_id: project.user_id
     };
+
+    console.log('GET /api/projects/[id] - Banner config inviato:', formattedProject.banner_config);
 
     return NextResponse.json({
       success: true,
@@ -98,26 +129,38 @@ export async function PUT(
     }
 
     const body = await request.json();
+    console.log('PUT /api/projects/[id] - Body ricevuto:', body);
+    
     const { name, domain, language, banner_config } = body;
 
     const now = new Date().toISOString();
     
-    // Aggiorna il progetto
-    await db.execute({
-      sql: `
-        UPDATE projects 
-        SET name = ?, domain = ?, language = ?, banner_config = ?, updated_at = ?
-        WHERE id = ? AND is_active = 1
-      `,
-      args: [
-        name || null,
-        domain || null,
-        language || null,
-        banner_config ? JSON.stringify(banner_config) : null,
-        now,
-        projectId
-      ]
-    });
+    // Se stiamo aggiornando solo banner_config (dall'editor)
+    if (banner_config && !name && !domain && !language) {
+      console.log('Aggiornamento solo banner_config');
+      await db.execute({
+        sql: `UPDATE projects SET banner_config = ?, updated_at = ? WHERE id = ? AND is_active = 1`,
+        args: [JSON.stringify(banner_config), now, projectId]
+      });
+    } else {
+      // Aggiornamento completo progetto
+      console.log('Aggiornamento completo progetto');
+      await db.execute({
+        sql: `
+          UPDATE projects 
+          SET name = ?, domain = ?, language = ?, banner_config = ?, updated_at = ?
+          WHERE id = ? AND is_active = 1
+        `,
+        args: [
+          name || null,
+          domain || null,
+          language || null,
+          banner_config ? JSON.stringify(banner_config) : null,
+          now,
+          projectId
+        ]
+      });
+    }
 
     // Log dell'aggiornamento
     await db.execute({
