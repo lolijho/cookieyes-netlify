@@ -1,13 +1,13 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@netlify/neon';
 import { eq } from 'drizzle-orm';
 import * as schema from './schema';
 import bcrypt from 'bcryptjs';
 
-// Connessione al database PostgreSQL (Netlify DB)
-const connectionString = process.env.DATABASE_URL || 'postgresql://localhost:5432/cookieyes';
-const client = postgres(connectionString);
-export const db = drizzle(client, { schema });
+// Connessione al database PostgreSQL tramite Netlify Neon
+const connectionString = process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL || 'postgresql://localhost:5432/cookieyes';
+const client = neon(connectionString);
+export const db = drizzle({ client, schema });
 
 // Schema del database aggiornato per sistema multi-utente PostgreSQL
 export const initDatabase = async () => {
@@ -43,13 +43,13 @@ export const initDefaultData = async () => {
         displayName: 'Piano Starter',
         maxProjects: 1,
         price: 0, // Gratuito
-        features: JSON.stringify([
+        features: [
           'Fino a 1 progetto',
           'Banner cookie personalizzabile',
           'Analytics di base',
           'Export CSV',
           'Supporto email'
-        ])
+        ]
       });
       
       // Piano Professional (2 progetti)
@@ -59,14 +59,14 @@ export const initDefaultData = async () => {
         displayName: 'Piano Professional',
         maxProjects: 2,
         price: 2900, // €29.00
-        features: JSON.stringify([
+        features: [
           'Fino a 2 progetti',
           'Banner cookie personalizzabile',
           'Analytics avanzate',
           'Export CSV',
           'Cookie scanner automatico',
           'Supporto prioritario'
-        ])
+        ]
       });
       
       // Piano Business (5 progetti)
@@ -76,7 +76,7 @@ export const initDefaultData = async () => {
         displayName: 'Piano Business',
         maxProjects: 5,
         price: 4900, // €49.00
-        features: JSON.stringify([
+        features: [
           'Fino a 5 progetti',
           'Banner cookie personalizzabile',
           'Analytics complete',
@@ -85,7 +85,7 @@ export const initDefaultData = async () => {
           'API avanzate',
           'Audit log completo',
           'Supporto dedicato'
-        ])
+        ]
       });
       
       console.log('✅ Piani predefiniti creati');
