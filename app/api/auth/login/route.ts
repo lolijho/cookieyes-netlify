@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, type LoginRequest, type LoginResponse } from '../../../../db';
+import postgres from 'postgres';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
-    const body: LoginRequest = await request.json();
+    const body = await request.json();
     const { email, password } = body;
 
     console.log('🔐 Tentativo login per:', email);
@@ -17,38 +17,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cerca l'utente nel database
-    const userResult = await db.execute({
-      sql: 'SELECT * FROM users WHERE email = ? AND is_active = 1',
-      args: [email.toLowerCase()]
-    });
+    const sql = postgres(process.env.DATABASE_URL || 'postgresql://localhost:5432/cookieyes');
 
-    if (userResult.rows.length === 0) {
+    // Cerca l'utente nel database
+    const userResult = await sql`
+      SELECT * FROM users 
+      WHERE email = ${email.toLowerCase()} 
+      AND is_active = true
+    `;
+
+    if (userResult.length === 0) {
+      await sql.end();
       return NextResponse.json(
         { success: false, error: 'Credenziali non valide' },
         { status: 401 }
       );
     }
 
-    const user = userResult.rows[0] as any;
+    const user = userResult[0];
 
     // Verifica password
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
       // Log tentativo login fallito
-      await db.execute({
-        sql: `INSERT INTO audit_logs (user_id, action, resource, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          user.id,
-          'login_failed',
-          'auth',
-          JSON.stringify({ reason: 'invalid_password' }),
-          request.headers.get('x-forwarded-for') || 'unknown',
-          request.headers.get('user-agent') || 'unknown',
-          new Date().toISOString()
-        ]
-      });
+      await sql`
+        INSERT INTO audit_logs (user_id, action, resource, details, ip_address, user_agent) 
+        VALUES (${user.id}, 'login_failed', 'auth', ${JSON.stringify({ reason: 'invalid_password' })}, 
+                ${request.headers.get('x-forwarded-for') || 'unknown'}, 
+                ${request.headers.get('user-agent') || 'unknown'})
+      `;
 
+      await sql.end();
       return NextResponse.json(
         { success: false, error: 'Credenziali non valide' },
         { status: 401 }
@@ -61,42 +60,32 @@ export async function POST(request: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + 7); // Sessione valida 7 giorni
 
     // Salva sessione nel database
-    await db.execute({
-      sql: `INSERT INTO sessions (id, user_id, expires_at, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [
-        sessionId,
-        user.id,
-        expiresAt.toISOString(),
-        request.headers.get('x-forwarded-for') || 'unknown',
-        request.headers.get('user-agent') || 'unknown',
-        new Date().toISOString()
-      ]
-    });
+    await sql`
+      INSERT INTO sessions (id, user_id, expires_at, ip_address, user_agent) 
+      VALUES (${sessionId}, ${user.id}, ${expiresAt}, 
+              ${request.headers.get('x-forwarded-for') || 'unknown'}, 
+              ${request.headers.get('user-agent') || 'unknown'})
+    `;
 
     // Aggiorna ultimo login
-    await db.execute({
-      sql: 'UPDATE users SET last_login = ? WHERE id = ?',
-      args: [new Date().toISOString(), user.id]
-    });
+    await sql`
+      UPDATE users SET last_login = ${new Date()} WHERE id = ${user.id}
+    `;
 
     // Log login riuscito
-    await db.execute({
-      sql: `INSERT INTO audit_logs (user_id, action, resource, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      args: [
-        user.id,
-        'login_success',
-        'auth',
-        JSON.stringify({ session_id: sessionId }),
-        request.headers.get('x-forwarded-for') || 'unknown',
-        request.headers.get('user-agent') || 'unknown',
-        new Date().toISOString()
-      ]
-    });
+    await sql`
+      INSERT INTO audit_logs (user_id, action, resource, details, ip_address, user_agent) 
+      VALUES (${user.id}, 'login_success', 'auth', ${JSON.stringify({ session_id: sessionId })}, 
+              ${request.headers.get('x-forwarded-for') || 'unknown'}, 
+              ${request.headers.get('user-agent') || 'unknown'})
+    `;
+
+    await sql.end();
 
     // Prepara risposta senza password
     const { password_hash, ...userWithoutPassword } = user;
 
-    const response: LoginResponse = {
+    const response = {
       success: true,
       user: userWithoutPassword,
       session: {
